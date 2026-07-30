@@ -1,0 +1,587 @@
+#!/usr/bin/env python3
+"""The Until hard gate — Cursor beforeShellExecution/preToolUse and
+Claude Code PreToolUse (Bash routes to the shell path, edit tools to the
+file path; output format adapts per harness).
+
+Reads the stage state written by until-track-state (which watches real MCP
+traffic). Two enforcement modes:
+
+1. In-flight plan (any repo): while THIS conversation has a plan submitted
+   but not yet cleared by the server-owned review policy, DENY workspace
+   file edits and unrecognized shell execution. Read-only inspection and the
+   short `pending_upload` stage remain available for the upload itself. Once
+   `get_plan` confirms submission, shell enforcement closes again. A plan is
+   clear when peer review is not required or an approved verdict has landed.
+
+2. Default-closed repos: a repo containing a `.until-method` marker file at
+   its root follows the Until method for implementation changes. File edits
+   and unrecognized shell execution are denied UNLESS this conversation has a
+   cleared plan, with one narrow pre-plan exception: Markdown shape artifacts
+   below docs/plans, docs/design, or docs/specs may be edited but not
+   committed. Repos without the marker are unaffected.
+
+Text rails persuade; this hook simply refuses. Escape valves are
+human-only — every agent shell or file tool that targets ~/.until/state
+is denied. A human can still act directly from their own terminal:
+  - choose not to use the Until Loop: touch ~/.until/state/skip-<convo>
+  - clear an in-flight gate:          rm ~/.until/state/session-<convo>.json
+
+Anti-tamper is TOKEN-based, not substring-based: a command is denied when
+one of its parsed arguments actually resolves to a path in the state dir
+(or to ~/.until itself). Merely mentioning the path in prose — e.g. inside
+a commit message — is fine.
+
+Canonical path checks close predictable relative-path and symlink aliases;
+they do not make this Until Loop guard a shell security sandbox.
+"""
+
+import json
+import os
+import re
+import shlex
+import sys
+import time
+from datetime import datetime, timezone
+
+HOME = os.path.expanduser("~")
+UNTIL_ROOT = os.path.realpath(os.path.join(HOME, ".until"))
+STATE_DIR = os.path.realpath(os.path.join(UNTIL_ROOT, "state"))
+PLAN_ID_RE = re.compile(r"^UNTIL-[0-9]+$")
+
+EDIT_TOOL_PAT = re.compile(
+    r"write|edit|str_?replace|multi_?edit|apply_?patch|search_replace|delete|notebook",
+    re.IGNORECASE,
+)
+PATH_KEYS = ("file_path", "path", "target_file", "absolute_path", "filePath", "target_notebook")
+SHAPE_DOC_DIRS = {"plans", "design", "specs"}
+
+SHELL_SPLIT_PAT = re.compile(r"\s*(?:&&|\|\||;|\|)\s*")
+SAFE_SHELL_COMMANDS = {
+    "[",
+    "cat",
+    "cd",
+    "cut",
+    "echo",
+    "false",
+    "head",
+    "ls",
+    "printf",
+    "pwd",
+    "rg",
+    "stat",
+    "test",
+    "true",
+    "wc",
+    "which",
+}
+SAFE_GIT_COMMANDS = {
+    "diff",
+    "log",
+    "ls-files",
+    "ls-tree",
+    "rev-parse",
+    "show",
+    "status",
+}
+
+
+def log(msg):
+    """One-line firing log so hook activity is verifiable at a glance."""
+    try:
+        path = os.path.join(UNTIL_ROOT, "hooks.log")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "a") as f:
+            f.write(time.strftime("%Y-%m-%dT%H:%M:%SZ ", time.gmtime()) + msg + "\n")
+    except Exception:
+        pass
+
+
+# Which harness are we answering? Cursor events are camelCase
+# (beforeShellExecution/preToolUse) and expect {"permission": ...};
+# Claude Code sends PreToolUse and expects hookSpecificOutput with
+# permissionDecision. Set once in main().
+CLAUDE_OUTPUT = False
+
+
+def respond(permission, agent_msg=None, user_msg=None):
+    if CLAUDE_OUTPUT:
+        out = {
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": permission,
+            }
+        }
+        if agent_msg:
+            out["hookSpecificOutput"]["permissionDecisionReason"] = agent_msg
+        if user_msg and permission != "allow":
+            out["systemMessage"] = user_msg
+    else:
+        out = {"permission": permission}
+        if agent_msg:
+            out["agent_message"] = agent_msg
+        if user_msg:
+            out["user_message"] = user_msg
+    print(json.dumps(out))
+    sys.exit(0)
+
+
+def allow():
+    respond("allow")
+
+
+def deny(agent_msg, user_msg):
+    log("commit-gate DENY")
+    respond("deny", agent_msg, user_msg)
+
+
+def pending_upload_has_expired(state):
+    """Fail closed unless a valid server deadline is still in the future."""
+    try:
+        expires_at = state["pending_upload_expires_at"]
+        deadline = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return True
+    if deadline.tzinfo is None:
+        return True
+    return datetime.now(timezone.utc) >= deadline.astimezone(timezone.utc)
+
+
+def safe_absolute_path_substitution(value):
+    """Accept one inert absolute path, quoted when shell syntax requires it."""
+    if re.fullmatch(r"/[A-Za-z0-9_@%+=:,./-]+", value):
+        path = value
+    elif (
+        len(value) >= 2
+        and value[0] == value[-1] == "'"
+        and "'" not in value[1:-1]
+    ):
+        path = value[1:-1]
+    elif (
+        len(value) >= 2
+        and value[0] == value[-1] == '"'
+        and re.fullmatch(r"/[A-Za-z0-9_@%+=:,./ -]+", value[1:-1])
+    ):
+        # Double quotes permit shell expansion, so accept only inert absolute
+        # path characters (including spaces) and reject $, backticks, escapes,
+        # or any embedded quote.
+        path = value[1:-1]
+    else:
+        return False
+    return os.path.isabs(path)
+
+
+def pending_upload_command_matches(state, cmd):
+    """Match the issued command, allowing one safe local plan-path substitution."""
+    template = (state or {}).get("pending_upload_command")
+    if not isinstance(template, str) or not template:
+        return False
+    placeholder = "<plan_file_path>"
+    count = template.count(placeholder)
+    if count == 0:
+        return cmd == template
+    if count != 1:
+        return False
+    prefix, suffix = template.split(placeholder)
+    if not cmd.startswith(prefix) or not cmd.endswith(suffix):
+        return False
+    end = len(cmd) - len(suffix) if suffix else len(cmd)
+    replacement = cmd[len(prefix):end]
+    return safe_absolute_path_substitution(replacement)
+
+
+def contained_path(target, root=None, cwd=None):
+    """Return the canonical target when it is inside root, otherwise None."""
+    if not target:
+        return None
+    for home_prefix in ("${HOME}", "$HOME", "~"):
+        if target == home_prefix or target.startswith(home_prefix + os.sep):
+            target = HOME + target[len(home_prefix):]
+            break
+    if not os.path.isabs(target):
+        target = os.path.join(cwd or os.getcwd(), target)
+    resolved = os.path.realpath(target)
+    if root is None:
+        return resolved
+    root = os.path.realpath(root)
+    try:
+        return resolved if os.path.commonpath((resolved, root)) == root else None
+    except ValueError:
+        return None
+
+
+def targets_state_dir(cmd, cwd=None):
+    """True when a parsed argument resolves INTO the state dir (or to
+    ~/.until itself, which contains it). Prose mentions — the path appearing
+    inside a larger string like a commit message — do not match, because
+    they never parse to a token that IS the path."""
+    try:
+        tokens = shlex.split(cmd, posix=True)
+    except ValueError:
+        # Unparseable shell: fall back to the conservative substring check.
+        return ".until/state" in cmd
+    for tok in tokens:
+        until_target = contained_path(tok, UNTIL_ROOT, cwd)
+        if until_target == UNTIL_ROOT or contained_path(tok, STATE_DIR, cwd):
+            return True
+    return False
+
+
+def safe_git_inspection(tokens):
+    """Recognize git commands that inspect state without mutating it."""
+    unsafe_flags = {"--ext-diff", "--textconv", "--output"}
+    if any(
+        token in unsafe_flags or token.startswith("--output=")
+        for token in tokens
+    ):
+        return False
+    index = 1
+    while index < len(tokens) and tokens[index].startswith("-"):
+        if tokens[index] in {"-C", "--git-dir", "--work-tree"}:
+            index += 2
+        else:
+            index += 1
+    if index >= len(tokens):
+        return False
+    subcommand = tokens[index]
+    rest = tokens[index + 1:]
+    if subcommand in SAFE_GIT_COMMANDS:
+        return True
+    if subcommand == "remote":
+        return bool(rest) and rest[0] in {"-v", "get-url"}
+    if subcommand == "branch":
+        safe_flags = {
+            "-a", "--all", "-r", "--remotes", "-v", "-vv",
+            "--list", "--show-current", "--no-color",
+        }
+        return all(token in safe_flags or token.startswith("--format=") for token in rest)
+    if subcommand == "symbolic-ref":
+        return rest in (["HEAD"], ["-q", "HEAD"], ["--short", "HEAD"])
+    return False
+
+
+def shell_is_read_only(cmd):
+    """Fail closed: allow only recognized inspection commands."""
+    if not cmd.strip():
+        return True
+    if "`" in cmd or "$(" in cmd:
+        return False
+    without_dev_null = re.sub(r"\d*>\s*/dev/null", "", cmd)
+    if ">" in without_dev_null:
+        return False
+    for segment in SHELL_SPLIT_PAT.split(cmd):
+        segment = segment.strip()
+        if not segment:
+            continue
+        try:
+            tokens = shlex.split(segment, posix=True)
+        except ValueError:
+            return False
+        while tokens and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", tokens[0]):
+            tokens.pop(0)
+        if not tokens:
+            continue
+        executable_path = tokens[0]
+        if os.path.dirname(executable_path) and not os.path.abspath(executable_path).startswith(
+            ("/bin/", "/usr/bin/", "/usr/local/bin/", "/opt/homebrew/bin/")
+        ):
+            return False
+        executable = os.path.basename(tokens[0])
+        if executable == "git":
+            if not safe_git_inspection(tokens):
+                return False
+            continue
+        if executable not in SAFE_SHELL_COMMANDS:
+            return False
+        if executable == "rg" and any(
+            token == "--pre" or token.startswith("--pre=")
+            for token in tokens[1:]
+        ):
+            return False
+    return True
+
+
+def find_until_repo(start):
+    """Walk up from a path looking for a .until-method marker at a repo root."""
+    if not start:
+        return None
+    p = os.path.abspath(os.path.expanduser(start))
+    if os.path.isfile(p):
+        p = os.path.dirname(p)
+    for _ in range(30):
+        if os.path.exists(os.path.join(p, ".until-method")):
+            return p
+        parent = os.path.dirname(p)
+        if parent == p:
+            return None
+        p = parent
+    return None
+
+
+def is_shape_doc(target, cwd=None):
+    """True only for Markdown below an allowlisted shape-doc directory."""
+    resolved = contained_path(target, cwd=cwd)
+    if not resolved:
+        return False
+    repo = find_until_repo(resolved)
+    if not repo:
+        return False
+    resolved = contained_path(resolved, repo)
+    if not resolved:
+        return False
+    rel = os.path.relpath(resolved, os.path.realpath(repo))
+    parts = rel.split(os.sep)
+    if len(parts) < 3 or parts[0] != "docs" or parts[1] not in SHAPE_DOC_DIRS:
+        return False
+    return os.path.splitext(parts[-1])[1].lower() in {".md", ".mdx"}
+
+
+def main():
+    try:
+        payload = json.loads(sys.stdin.read() or "{}")
+    except Exception:
+        allow()
+    if not payload:
+        allow()
+
+    # Cursor sends conversation_id + camelCase events; Claude Code sends
+    # session_id + PreToolUse. Normalize Claude's single event onto the two
+    # Cursor-shaped paths (Bash -> shell, everything else -> file tools).
+    global CLAUDE_OUTPUT
+    convo = payload.get("conversation_id") or payload.get("session_id") or "unknown"
+    event = payload.get("hook_event_name") or ""
+    if event == "PreToolUse":
+        CLAUDE_OUTPUT = True
+        tool_name = payload.get("tool_name") or ""
+        if tool_name == "Bash":
+            event = "beforeShellExecution"
+            ti = payload.get("tool_input")
+            if isinstance(ti, dict):
+                payload = dict(payload, command=ti.get("command", ""))
+        else:
+            event = "preToolUse"
+    state_path = os.path.join(STATE_DIR, f"session-{convo}.json")
+    skip_path = os.path.join(STATE_DIR, f"skip-{convo}")
+
+    try:
+        with open(state_path) as f:
+            state = json.load(f)
+    except Exception:
+        state = None
+
+    tracked_plan_id = (state or {}).get("plan_id")
+    has_valid_plan = isinstance(tracked_plan_id, str) and bool(
+        PLAN_ID_RE.fullmatch(tracked_plan_id)
+    )
+    approved = has_valid_plan and state.get("stage") == "approved"
+    review_not_required = has_valid_plan and state.get("stage") == "review_not_required"
+    pending_upload = has_valid_plan and state.get("stage") == "pending_upload"
+    pending_upload_expired = pending_upload and pending_upload_has_expired(state)
+    setup_required = bool(state) and state.get("stage") == "setup_required"
+    changes_requested = has_valid_plan and state.get("stage") == "changes_requested"
+    build_allowed = approved or review_not_required
+    in_flight = setup_required or (has_valid_plan and not build_allowed)
+    skipped = os.path.exists(skip_path)
+    plan_id = tracked_plan_id if has_valid_plan else "unavailable"
+    solo_policy_pending = (
+        in_flight
+        and (state or {}).get("review_requirement") == "not_required"
+        and (state or {}).get("review_policy_reason") == "no_other_human"
+    )
+
+    # agent_message is read by the model; user_message is shown VERBATIM in the
+    # user's chat — so user messages speak the product (plan/review/submission)
+    # and never the machinery (hooks/gates/state).
+    if setup_required:
+        in_flight_agent_msg = (
+            "UNTIL GATE: repository access setup is required and no plan was "
+            "submitted. Stop before implementation. Present the setup link from the "
+            "submit_plan response, wait for your partner to confirm setup, then retry "
+            "submission. Plan acceptance or an implementation request does not waive "
+            "this blocker; only the instruction “Don’t use the Until Loop for this.” does."
+        )
+        in_flight_user_msg = (
+            "Until still needs repository access before this plan can be submitted — "
+            "implementation stays paused until setup is completed and submission succeeds."
+        )
+    elif pending_upload_expired:
+        in_flight_agent_msg = (
+            f"UNTIL GATE: plan {plan_id}'s upload authorization expired before the "
+            "upload was confirmed. Stop before implementation. Retry submit_plan or "
+            "update_plan to obtain a fresh upload action, execute it, then confirm the "
+            "saved plan with get_plan. The expired pending-upload stage permits only "
+            "read-only inspection."
+        )
+        in_flight_user_msg = (
+            f"Until: plan {plan_id}'s upload authorization expired — retry the "
+            "submission to continue."
+        )
+    elif solo_policy_pending:
+        in_flight_agent_msg = (
+            f"UNTIL GATE: plan {plan_id} does not require peer review, but its upload "
+            "has not been confirmed through get_plan yet. Run the exact upload command "
+            "returned by submit_plan, then call get_plan. Do not request review or run "
+            "a fresh-context subagent. Relay only: 'the plan is still saving; I need "
+            "to confirm it landed before building.'"
+        )
+        in_flight_user_msg = (
+            f"Until: plan {plan_id} is still saving — building starts after I confirm "
+            "it landed."
+        )
+    elif changes_requested:
+        in_flight_agent_msg = (
+            f"UNTIL GATE: review returned changes for plan {plan_id}. Implementation "
+            "remains blocked, but revision is the required next action and does not "
+            "bypass review. Continue the planning conversation, inspect the repository "
+            "read-only, and edit the canonical draft under ~/.until/plans/ or disposable "
+            "planning artifacts under ~/.until/scratch/. Then call update_plan for this "
+            "same plan, execute its issued upload action, confirm the saved revision "
+            "with get_plan, and request a fresh human review. Do not edit a product "
+            "checkout, commit, push, or open a pull request before approval."
+        )
+        in_flight_user_msg = (
+            f"Until: review returned changes for plan {plan_id} — revise the same plan "
+            "and send it back for fresh review; building stays paused."
+        )
+    else:
+        in_flight_agent_msg = (
+            f"UNTIL GATE: plan {plan_id} requires peer review and has NO approved "
+            "verdict. Blocked until another human records approval. Legitimate moves: "
+            "(1) load getting-a-review and route it to a teammate or connected review service; "
+            "(2) revise with update_plan if changes were requested; (3) wait. A "
+            "partner's go-ahead in chat or a Build click is not a verdict. If the "
+            "partner explicitly says “Don’t use the Until Loop for this.”, tell them once what they waive "
+            f"and give them this human-run command: touch '{skip_path}'. Otherwise "
+            "never surface it. Relay blocks in Until Loop terms only."
+        )
+        in_flight_user_msg = (
+            f"Until: plan {plan_id} is awaiting peer review — building stays paused "
+            "until another human approves it."
+        )
+
+    default_closed_agent_msg = (
+        "UNTIL GATE: this repository is marked `.until-method` — every change here "
+        "requires a submitted plan cleared by Until's review policy, and this "
+        "conversation has none. No edits, "
+        "no commits until then. The path forward is the method itself: load "
+        "`brainstorming` to agree the shape with your partner, `writing-a-good-plan` "
+        "to draft it, and submit_plan. A solo plan proceeds after its upload is "
+        "confirmed; a team plan proceeds after another human approves it. A direct "
+        "instruction to make the change is the START of that "
+        "conversation, not permission to bypass it. If your partner says "
+        "“Don’t use the Until Loop for this.”, THEY must run this in their own terminal: "
+        f"touch '{skip_path}' — When you relay this block, use Until Loop terms only "
+        "('this repo needs a submitted plan first') — no hooks/gates/state in chat."
+    )
+    default_closed_user_msg = (
+        "Until: this repository asks for a submitted plan before any change, and this "
+        "session doesn't have one yet — so we'll plan first."
+    )
+
+    log(f"commit-gate fired: event={event} tool={payload.get('tool_name', '')} convo={convo} "
+        f"build_allowed={build_allowed} in_flight={in_flight} "
+        f"pending_upload_expired={pending_upload_expired} skipped={skipped}")
+
+    if event == "beforeShellExecution":
+        cmd = payload.get("command") or ""
+        # Only the human may create skip tokens or clear state, so this must
+        # run even when nothing is gated yet.
+        if targets_state_dir(cmd, payload.get("cwd")):
+            deny(
+                "UNTIL GATE: agents may not touch Until session state (that includes "
+                "creating skip tokens). Only your partner can do that, from their own "
+                f"terminal after saying “Don’t use the Until Loop for this.”: touch '{skip_path}'. "
+                "Never present this as solo approval or an ordinary review path. Relay "
+                "it only after that exact instruction; no hooks/gates/state talk.",
+                "Until can't waive its own process. If you said “Don’t use the Until "
+                "Loop for this.”, the bypass has to come from you.",
+            )
+        if (
+            pending_upload
+            and not pending_upload_expired
+            and pending_upload_command_matches(state, cmd)
+        ):
+            allow()
+        if build_allowed or skipped:
+            allow()
+        marked_repo = find_until_repo(payload.get("cwd") or "")
+        if in_flight and not shell_is_read_only(cmd):
+            deny(
+                in_flight_agent_msg
+                + " The denied operation is a stop condition. Never try an alternate "
+                  "write path, shell redirection, or another tool.",
+                in_flight_user_msg,
+            )
+        if marked_repo and not shell_is_read_only(cmd):
+            deny(
+                default_closed_agent_msg
+                + " The denied operation is a stop condition. Never try an alternate "
+                  "write path, shell redirection, or another tool.",
+                default_closed_user_msg,
+            )
+        allow()
+
+    if event == "preToolUse":
+        if build_allowed or skipped:
+            allow()
+        tool = payload.get("tool_name") or ""
+        if not EDIT_TOOL_PAT.search(tool):
+            allow()
+        tool_input = payload.get("tool_input")
+        if isinstance(tool_input, str):
+            try:
+                tool_input = json.loads(tool_input)
+            except Exception:
+                tool_input = {}
+        if not isinstance(tool_input, dict):
+            tool_input = {}
+        target = ""
+        for key in PATH_KEYS:
+            if isinstance(tool_input.get(key), str):
+                target = tool_input[key]
+                break
+        if target:
+            cwd = payload.get("cwd")
+            until_target = contained_path(target, UNTIL_ROOT, cwd)
+            # File tools may never write into the state dir either — otherwise
+            # the agent could forge a skip token with the Write tool.
+            if until_target == UNTIL_ROOT or contained_path(target, STATE_DIR, cwd):
+                deny(
+                    "UNTIL GATE: agents may not touch Until session state (that "
+                    "includes creating skip tokens via file tools). Only your partner "
+                    f"can, from their own terminal after saying “Don’t use the Until "
+                    f"Loop for this.”: touch '{skip_path}'. Never present this as solo "
+                    "approval. Relay it only after that exact instruction.",
+                    "Until can't waive its own process. If you said “Don’t use the Until "
+                    "Loop for this.”, the bypass has to come from you.",
+                )
+            # Plan drafts and Until scratch space stay editable at every stage.
+            if until_target:
+                allow()
+            # Before a plan exists, shape-only Markdown artifacts may be
+            # produced in the repository's dedicated planning/design/spec
+            # directories. Once a plan is submitted, its in-flight protection
+            # still blocks every workspace edit until policy clearance.
+            if not in_flight and is_shape_doc(target, cwd):
+                allow()
+        if in_flight:
+            if not target:
+                allow()  # fail-open when we can't tell what's being edited
+            deny(in_flight_agent_msg, in_flight_user_msg)
+        # Default-closed check needs a resolvable target inside a marked repo.
+        resolved = contained_path(target, cwd=payload.get("cwd"))
+        if resolved and find_until_repo(resolved):
+            deny(default_closed_agent_msg, default_closed_user_msg)
+        allow()
+
+    allow()
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except SystemExit:
+        raise
+    except Exception:
+        # Fail open: a crashed gate must never brick the user's session.
+        print(json.dumps({"permission": "allow"}))
+        sys.exit(0)

@@ -1,0 +1,21 @@
+{
+  "name": "until",
+  "description": "The outer loop for coding agents. No code until the Plan is agreed — Until moves peer review onto the Plan and checks every Pull request against it.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Overmind",
+    "email": "hello@overmind.tech"
+  },
+  "homepage": "https://until.dev",
+  "repository": "https://github.com/until-dev/plugins",
+  "license": "MIT",
+  "keywords": [
+    "until",
+    "plan-first",
+    "peer-review"
+  ],
+  "logo": "assets/logo.svg",
+  "skills": "./skills/",
+  "rules": "./rules/",
+  "hooks": "./hooks/hooks-cursor.json"
+}

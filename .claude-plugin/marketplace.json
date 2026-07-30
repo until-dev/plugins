@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "until",
+  "description": "The outer loop for coding agents. No code until the Plan is agreed — Until moves peer review onto the Plan and checks every Pull request against it.",
+  "owner": {
+    "name": "Overmind",
+    "email": "hello@overmind.tech"
+  },
+  "plugins": [
+    {
+      "name": "until",
+      "source": "./",
+      "description": "The outer loop for coding agents. No code until the Plan is agreed — Until moves peer review onto the Plan and checks every Pull request against it.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Overmind",
+        "email": "hello@overmind.tech"
+      },
+      "homepage": "https://until.dev",
+      "repository": "https://github.com/until-dev/plugins",
+      "license": "MIT",
+      "keywords": [
+        "until",
+        "plan-first",
+        "peer-review"
+      ]
+    }
+  ]
+}

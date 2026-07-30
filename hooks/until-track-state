@@ -1,0 +1,359 @@
+#!/usr/bin/env python3
+"""Until stage tracking — Cursor afterMCPExecution / Claude Code PostToolUse.
+
+Watches real Until MCP traffic (not the model's claims) and records the
+current plan stage for this conversation in ~/.until/state/. The
+until-commit-gate hook reads that state to keep shell available during
+`pending_upload`, then block implementation until the server says peer review
+is not required or the current plan lifecycle is approved.
+Handles both harnesses' payload shapes (conversation_id/result_json vs
+session_id/tool_response).
+
+Fail-open by design: any parsing failure writes no state and the gate
+stays out of the way. Requires python3 on PATH (see README).
+"""
+
+import json
+import os
+import re
+import sys
+import time
+from datetime import datetime, timedelta, timezone
+
+DEFAULT_UPLOAD_WINDOW = timedelta(minutes=15)
+
+STATE_DIR = os.path.expanduser("~/.until/state")
+PLAN_ID_RE = re.compile(r"^UNTIL-[0-9]+$")
+PLAN_ID_SEARCH_RE = re.compile(
+    r"(?<![A-Za-z0-9_-])UNTIL-[0-9]+(?![A-Za-z0-9_-])"
+)
+
+
+def log(msg):
+    """One-line firing log so hook activity is verifiable at a glance."""
+    try:
+        path = os.path.expanduser("~/.until/hooks.log")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "a") as f:
+            f.write(time.strftime("%Y-%m-%dT%H:%M:%SZ ", time.gmtime()) + msg + "\n")
+    except Exception:
+        pass
+
+
+def load_state(state_path):
+    try:
+        with open(state_path) as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def save_state(state_path, state):
+    state["updated_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    os.makedirs(STATE_DIR, exist_ok=True)
+    tmp = state_path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(state, f, indent=2)
+    os.replace(tmp, state_path)
+
+
+def parse_result(payload):
+    """Extract the MCP tool result from either harness's payload shape.
+
+    Cursor afterMCPExecution: result_json is a JSON *string*.
+    Claude Code PostToolUse:  tool_response is already parsed (dict/list),
+    occasionally a string.
+    """
+    raw = payload.get("result_json")
+    if raw is not None:
+        if isinstance(raw, str):
+            try:
+                data = json.loads(raw)
+            except Exception:
+                return None
+        else:
+            data = raw
+    else:
+        data = payload.get("tool_response")
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except Exception:
+                return None
+    # MCP results commonly wrap the payload: {"content":[{"type":"text","text":"<json>"}]}
+    if isinstance(data, dict) and isinstance(data.get("content"), list):
+        for item in data["content"]:
+            if isinstance(item, dict) and item.get("type") == "text":
+                try:
+                    return json.loads(item["text"])
+                except Exception:
+                    continue
+    return data
+
+
+def parse_tool_input(payload):
+    """Extract MCP tool input from either harness without guessing on errors."""
+    data = payload.get("tool_input")
+    if isinstance(data, str):
+        try:
+            data = json.loads(data)
+        except Exception:
+            return None
+    return data if isinstance(data, dict) else None
+
+
+def find_plan_id(obj):
+    if isinstance(obj, dict):
+        pid = obj.get("id")
+        if isinstance(pid, str) and PLAN_ID_RE.fullmatch(pid):
+            return pid
+        for v in obj.values():
+            found = find_plan_id(v)
+            if found:
+                return found
+    elif isinstance(obj, list):
+        for v in obj:
+            found = find_plan_id(v)
+            if found:
+                return found
+    elif isinstance(obj, str):
+        match = PLAN_ID_SEARCH_RE.search(obj)
+        if match:
+            return match.group(0)
+    return None
+
+
+def find_review_policy(obj):
+    """Return only the top-level server-owned review policy."""
+    if not isinstance(obj, dict):
+        return None
+    review = obj.get("review")
+    if isinstance(review, dict):
+        requirement = review.get("requirement")
+        reason = review.get("policy_reason")
+        if isinstance(requirement, str):
+            return requirement, reason if isinstance(reason, str) else ""
+    return None
+
+
+def plan_status(result):
+    if not isinstance(result, dict):
+        return ""
+    status = result.get("status") or result.get("lifecycle_stage") or ""
+    return status.lower() if isinstance(status, str) else ""
+
+
+def current_lifecycle_stage(result):
+    """Return the current lifecycle projected by get_plan, never review history."""
+    if not isinstance(result, dict):
+        return ""
+    lifecycle = result.get("lifecycle")
+    if not isinstance(lifecycle, dict):
+        return ""
+    stage = lifecycle.get("stage")
+    return stage.lower() if isinstance(stage, str) else ""
+
+
+def current_upload_expiry(result):
+    """Return a valid top-level upload expiry, ignoring malformed metadata."""
+    try:
+        expires_at = result["upload"]["expires_at"]
+        parsed = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return None
+    return expires_at if parsed.tzinfo is not None else None
+
+
+def default_upload_expiry():
+    """Client-side fallback when the server sends no valid upload deadline."""
+    deadline = datetime.now(timezone.utc) + DEFAULT_UPLOAD_WINDOW
+    return deadline.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def replace_upload_authorization(state, result, retain_existing=False):
+    """Replace issued command and deadline, retaining either when requested."""
+    try:
+        command = result["next_action"]["command"]
+    except (KeyError, TypeError):
+        command = None
+    if isinstance(command, str) and command.strip():
+        state["pending_upload_command"] = command
+    elif not retain_existing:
+        state.pop("pending_upload_command", None)
+
+    expires_at = current_upload_expiry(result)
+    if expires_at:
+        state["pending_upload_expires_at"] = expires_at
+        return
+    if retain_existing and state.get("pending_upload_expires_at"):
+        return
+    state["pending_upload_expires_at"] = default_upload_expiry()
+
+
+def opens_upload_window(result):
+    """True when Until handed the agent a plan-body upload to run next.
+
+    Prefer the concrete upload instruction over plan status. Content updates
+    from update_plan currently return status=submitted while still including
+    upload + next_action.command; gating only on status=pending_upload leaves
+    the commit-gate closed and blocks the curl that finalises the new body.
+    get_plan after a successful upload is what closes the window again.
+    """
+    if plan_status(result) == "pending_upload":
+        return True
+    if not isinstance(result, dict):
+        return False
+    upload = result.get("upload")
+    next_action = result.get("next_action")
+    if not isinstance(upload, dict) or not isinstance(next_action, dict):
+        return False
+    command = next_action.get("command")
+    return isinstance(command, str) and bool(command.strip())
+
+
+def apply_review_policy(state, result):
+    policy = find_review_policy(result)
+    if policy:
+        state["review_requirement"], state["review_policy_reason"] = policy
+    return policy
+
+
+def main():
+    try:
+        payload = json.loads(sys.stdin.read() or "{}")
+    except Exception:
+        return
+
+    tool = (payload.get("tool_name") or "").lower()
+    # Cursor sends conversation_id; Claude Code sends session_id.
+    convo = payload.get("conversation_id") or payload.get("session_id") or "unknown"
+    state_path = os.path.join(STATE_DIR, f"session-{convo}.json")
+
+    result = parse_result(payload)
+    state = load_state(state_path)
+    log(f"track-state fired: tool={tool} convo={convo} stage_before={(state or {}).get('stage')}")
+
+    if "submit_plan" in tool:
+        # Only a real UNTIL-<digits> Plan ID means a Plan was submitted. Source
+        # Control setup creates no plan, but remains a blocker for this
+        # conversation unless an existing real plan is already in flight.
+        # Never invent plan_id: "unknown" for submit_plan. Even when review
+        # is not required, stay submitted until get_plan confirms the upload.
+        pid = find_plan_id(result)
+        if (
+            plan_status(result) == "source_control_setup_required"
+            and not (state or {}).get("plan_id")
+        ):
+            save_state(state_path, {"stage": "setup_required"})
+        elif pid:
+            stage = "pending_upload" if opens_upload_window(result) else "submitted"
+            state = {"plan_id": pid, "stage": stage}
+            if stage == "pending_upload":
+                replace_upload_authorization(state, result)
+            apply_review_policy(state, result)
+            save_state(state_path, state)
+    elif "update_plan" in tool:
+        # Edits invalidate prior clearance until get_plan confirms the new
+        # upload. When Until returns an upload instruction, reopen the short
+        # pending_upload shell window so the body curl can run; get_plan after
+        # upload closes it again. Title-only updates have no upload and stay
+        # submitted / gated. Team plans then need a fresh verdict; solo reopen.
+        stage = "pending_upload" if opens_upload_window(result) else "submitted"
+        if state is None:
+            pid = find_plan_id(result)
+            if not pid:
+                return
+            state = {"plan_id": pid}
+        state["stage"] = stage
+        if stage == "pending_upload":
+            replace_upload_authorization(state, result)
+        else:
+            state.pop("pending_upload_command", None)
+            state.pop("pending_upload_expires_at", None)
+        save_state(state_path, state)
+    elif "delete_plan" in tool:
+        # delete_plan is idempotent, so a successful call alone is not enough
+        # to release a different plan's gate. Require the request, canonical
+        # response, and tracked state to agree exactly.
+        tool_input = parse_tool_input(payload)
+        tracked_id = (state or {}).get("plan_id")
+        if (
+            isinstance(tool_input, dict)
+            and isinstance(result, dict)
+            and isinstance(tracked_id, str)
+            and tool_input.get("id") == tracked_id
+            and result.get("id") == tracked_id
+            and result.get("deleted") is True
+        ):
+            try:
+                os.remove(state_path)
+            except FileNotFoundError:
+                pass
+    elif "request_review" in tool:
+        # A successful fresh review request moves a revised plan back to the
+        # ordinary pending-review experience. This is display state only:
+        # request_review can never grant implementation clearance.
+        tool_input = parse_tool_input(payload)
+        tracked_id = (state or {}).get("plan_id")
+        if (
+            state is not None
+            and isinstance(tool_input, dict)
+            and isinstance(tracked_id, str)
+            and tool_input.get("plan_id") == tracked_id
+            and isinstance(result, dict)
+            and result.get("status") == "requested"
+        ):
+            state["stage"] = "submitted"
+            state.pop("pending_upload_command", None)
+            state.pop("pending_upload_expires_at", None)
+            save_state(state_path, state)
+    elif "get_plan" in tool:
+        # Only the exact current plan response can release implementation.
+        # Review-tool results and nested review history are never clearance.
+        tool_input = parse_tool_input(payload)
+        requested_id = (
+            tool_input.get("id") if isinstance(tool_input, dict) else None
+        )
+        result_id = result.get("id") if isinstance(result, dict) else None
+        if (
+            state is None
+            and isinstance(requested_id, str)
+            and requested_id == result_id
+            and PLAN_ID_RE.fullmatch(requested_id)
+            and current_lifecycle_stage(result) == "changes_requested"
+        ):
+            # A rejected plan is commonly reopened in a fresh conversation.
+            # Seed only this still-gated state; never grant clearance from an
+            # untracked plan lookup.
+            state = {"plan_id": requested_id}
+        tracked_id = (state or {}).get("plan_id")
+        if (
+            state is not None
+            and isinstance(tracked_id, str)
+            and isinstance(result, dict)
+            and result.get("id") == tracked_id
+        ):
+            policy = apply_review_policy(state, result)
+            if plan_status(result) == "pending_upload":
+                state["stage"] = "pending_upload"
+                replace_upload_authorization(state, result, retain_existing=True)
+            elif policy == ("not_required", "no_other_human"):
+                state["stage"] = "review_not_required"
+            elif current_lifecycle_stage(result) == "approved":
+                state["stage"] = "approved"
+            elif current_lifecycle_stage(result) == "changes_requested":
+                state["stage"] = "changes_requested"
+            else:
+                state["stage"] = "submitted"
+            if state["stage"] != "pending_upload":
+                state.pop("pending_upload_command", None)
+                state.pop("pending_upload_expires_at", None)
+            save_state(state_path, state)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        pass  # fail open: never break the hook chain
+    sys.exit(0)

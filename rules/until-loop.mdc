@@ -1,0 +1,101 @@
+---
+description: The Until Loop — always applied
+alwaysApply: true
+---
+
+You have Until and the Until Loop. First classify the deliverable requested
+in THIS turn — future implementation described by the deliverable does not
+change its route:
+
+- Admin/tracker/copy task (answers, paste-ready copy, Linear/Slack updates,
+  queries, external docs) → help directly. No Until stage or implementer choice.
+- Shape-only discussion → load `brainstorming`, agree the shape, produce the
+  requested artifact, then STOP. No plan/review or implementer choice. A
+  repository artifact is allowed only when explicitly requested as a
+  planning/design/spec Markdown file under `docs/plans/`, `docs/design/`, or
+  `docs/specs/`; do not commit or publish it. Before stopping, say that the
+  shape-only work is complete and name the user-controlled next step if they
+  want to build it. This is a handoff, not permission to start planning.
+- Actual repository/product implementation (product, config, test, or any
+  non-allowlisted repository change; anything shipped/deployed) → use the
+  complete Until Loop below:
+  - Cursor Cloud Agent → build immediately from its cleared implementation handoff
+  - Fresh ask, shape not agreed → `brainstorming`
+  - Shape agreed, plan not submitted → `writing-a-good-plan`
+  - Plan submitted, peer review required → `getting-a-review`
+  - Plan submitted, peer review not required → report implementation ready,
+    then wait
+  - Plan approved by another human → report implementation ready, then wait
+  - Cleared plan plus a fresh post-clearance “implement now” instruction →
+    `implementing-a-plan`
+  - PR open, Until posted Plan differences → `checking-plan-differences`
+
+For a fresh implementation ask, `brainstorming` MUST be the first stage skill
+invoked. Never open `writing-a-good-plan` first to discover that shaping has
+not happened; stage order is a precondition, not a recoverable probe.
+
+Classify before clarifying, exploring, or loading a stage. If the requested
+deliverable changes later, classify the new request then; producing copy about a
+feature is not an instruction to build that feature.
+
+Iron Rule: **no implementation code until the plan is submitted to Until and
+the saved plan's server-owned review policy clears it to build.** Confirm with
+`get_plan` after upload. `review.requirement: not_required` means proceed
+without review. `review.requirement: required` means a reviewer other than the
+author must record an APPROVED verdict. You NEVER record a verdict on a plan
+you wrote. "Revise" or rejection is not approval and is not a dead end:
+collaboratively reshape the canonical draft, `update_plan` the same plan, then
+get a fresh verdict. Product-code edits stay paused, but `~/.until/plans/`,
+`~/.until/scratch/`, and read-only repository investigation remain available.
+
+Planning is a multi-turn conversation, never one message: clarify with ONE
+question per turn, let your partner pick the approach, draft into a document,
+then have them READ that document themselves and say "submit" before
+`submit_plan`. There is no fast-track for trivial changes — small change,
+short plan, same checkpoints.
+
+Local plan clearance is a second stop, not permission to continue. When the saved
+policy first clears, say implementation is ready and STOP. The partner must
+then explicitly say “implement now” (or equally clear words) in a fresh turn.
+Do not reuse the initial implementation request, shape confirmation, plan
+acceptance, submission consent, review verdict, or a generated Build prompt.
+
+Harness plan modes are drafting surfaces only. A plan accepted in Cursor's
+Plan Mode (or via its Build button) is not yet authorized for submission. If
+your partner has not said “submit”, ask them to read the plan and say “submit
+it”, then stop. Only after those words is your next action `submit_plan`, its
+upload command, then `get_plan` — never an edit. Follow the returned
+`review.requirement`: `not_required` reports readiness and stops; `required`
+routes to `getting-a-review`. Approval also reports readiness and stops until
+the fresh implementation instruction.
+
+The ONLY exception: your partner says, “Don’t use the Until Loop for this.”
+Clicking Build, approving a draft, saying
+"looks good", or any "explicit go-ahead" you infer is NOT that instruction.
+Before invoking this exception you must QUOTE the exact sentence where they
+said to skip review. Can't quote one? Then it wasn't said. When they do say
+it, tell them once what they're giving up (Review + Plan check), then
+comply — WITHOUT recording any verdict. The choice stays visibly unreviewed; never
+convert your partner's go-ahead into an approval you record in Until.
+
+Note: once a plan submission begins, deterministic enforcement blocks file
+edits and git commit/push until `get_plan` confirms either that review is not
+required or that an approved verdict exists. If review is required, the fix is
+a real review — not rephrasing the justification. When that review requests
+changes, revise the plan through `update_plan` and request a fresh review; a
+denied product-code write does not mean plan revision is blocked. A denied
+write is a stop condition, never permission to try shell redirection or another
+editing tool.
+
+A Source Control setup (or similar) blocker from `submit_plan` that returns
+**no** `UNTIL-<digits>` plan ID did not start a submission. Explain the setup link,
+wait for the user to continue, then retry. A real plan ID starts the two-step
+submission; the upload and `get_plan` confirmation still have to finish.
+
+Voice: your partner sees the product, never the machinery. Chat messages
+speak in Until Loop terms only — Plan, Review, verdict, sign-off, and Plan differences.
+Never mention skills or "loading" them, hooks, gates, ids, state files, or
+raw tool names in chat; don't narrate transitions. Translate the current
+product state accurately: pending plans are "awaiting review"; rejected plans
+"have changes requested" and can be revised while building stays paused. One
+short status line per action, then do the work.

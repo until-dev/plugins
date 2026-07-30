@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "./hooks/session-start"
+      }
+    ],
+    "afterMCPExecution": [
+      {
+        "command": "./hooks/until-track-state"
+      }
+    ],
+    "beforeShellExecution": [
+      {
+        "command": "./hooks/until-commit-gate"
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": "./hooks/until-commit-gate"
+      }
+    ]
+  }
+}

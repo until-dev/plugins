@@ -1,0 +1,26 @@
+{
+  "name": "until",
+  "owner": {
+    "name": "Overmind",
+    "email": "hello@overmind.tech"
+  },
+  "metadata": {
+    "description": "The outer loop for coding agents. No code until the Plan is agreed — Until moves peer review onto the Plan and checks every Pull request against it."
+  },
+  "plugins": [
+    {
+      "name": "until",
+      "source": ".",
+      "description": "The outer loop for coding agents. No code until the Plan is agreed — Until moves peer review onto the Plan and checks every Pull request against it.",
+      "version": "0.1.0",
+      "homepage": "https://until.dev",
+      "repository": "https://github.com/until-dev/plugins",
+      "keywords": [
+        "until",
+        "plan-first",
+        "peer-review"
+      ],
+      "logo": "assets/logo.svg"
+    }
+  ]
+}

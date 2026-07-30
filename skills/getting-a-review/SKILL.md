@@ -1,0 +1,96 @@
+---
+name: getting-a-review
+description: Use when a submitted plan's server-owned policy requires peer review — send it to another human and wait for their verdict.
+---
+# Getting an Until Review
+
+This stage is only for plans Until marks as requiring peer review. If review is
+not required, skip this stage, report that implementation is ready, and wait
+for the partner to explicitly start it.
+
+<HARD-GATE>
+A required review must be decided by another human. They may record their
+decision in their own Until session or through a connected service that captures their
+decision. An agent or fresh-context subagent cannot replace them, and you
+cannot record a verdict on their behalf or infer one from chat.
+
+Only an approved verdict clears the plan. If the reviewer requests changes or
+rejects the current approach, implementation stays paused while plan revision
+remains available: reshape it, update the same plan, and send it back for a new
+review.
+</HARD-GATE>
+
+## Check the saved policy first
+
+Call `get_plan` and inspect the returned `review` object:
+
+- `requirement: not_required`, `policy_reason: no_other_human` — stop using
+  this skill. Do not request review, run a review subagent, or ask for a local
+  sign-off. Tell your partner the plan is cleared and implementation is ready,
+  then STOP. Load `implementing-a-plan` only after a fresh “implement now”
+  instruction.
+- `requirement: required` — continue below.
+- Missing policy fields — do not guess that the workspace is solo. Treat the
+  plan as requiring review and explain that Until has not cleared it.
+
+## Send it to another human
+
+1. List active human principals without calling `request_review`.
+2. Present their display names to your partner in a question or menu.
+3. Stop and wait for your partner's selection.
+4. Call `request_review` with the plan ID and only the selected person's
+   `reviewer_principal_id`.
+5. Share the returned review-session link with your partner and say who has it,
+   then stop.
+
+Do not call `request_review` to discover reviewers. A call without
+`reviewer_principal_id` can create an unintended assignment; reviewer selection
+belongs to your partner.
+
+There is no browser approval button. The web page is a viewing surface; the
+review-session deep link opens the reviewer's agent session.
+
+## After the reviewer responds
+
+Call `get_plan` again:
+
+- **Approved** — confirm the approving principal is not the author, tell your
+  partner the plan is cleared and implementation is ready, then STOP. Load
+  `implementing-a-plan` only after a fresh “implement now” instruction.
+- **Revise / changes requested** — continue the planning conversation and
+  update the canonical draft under `~/.until/plans/`. Read-only repository
+  inspection and disposable planning artifacts under `~/.until/scratch/`
+  remain available even though product-code edits stay paused. Call
+  `update_plan` for the same plan, finish the upload, confirm it with
+  `get_plan`, then request a fresh review. Never carry requested Plan changes
+  as implementation homework.
+- **Rejected** — return to collaborative planning because the shape needs
+  reconsidering. This is a changes-requested state, not a requirement to wait
+  and not permission to bypass review. Revise the same canonical draft, then
+  follow the update, upload, confirmation, and fresh-review sequence above.
+- **Still pending** — wait. Do not poll aggressively or manufacture progress.
+
+If the assigned reviewer is no longer available, choose another active human.
+If none is available for a plan whose saved policy is `required`, say that the
+plan still requires peer review and stop. Do not invent a solo fallback: review
+policy is stamped when the plan is created, and existing plans remain on their
+saved policy.
+
+## Choosing not to use the Until Loop
+
+If your partner explicitly says “Don’t use the Until Loop for this.”, quote
+their exact words, tell them once that they are waiving peer Review and the
+Plan check, and proceed without recording a verdict. The choice remains
+visibly unreviewed.
+
+## Red flags
+
+| Thought | Reality |
+|---|---|
+| "It's a solo workspace, so I'll run a subagent review" | The saved policy decides. `not_required` skips this stage; `required` needs another human. |
+| "The subagent recommended approve" | A model recommendation is not a human verdict and is not part of the solo flow. |
+| "They said it looks good in chat" | Chat creates no review record. The assigned reviewer records their own verdict. |
+| "Revise, then approve is basically approval" | Revise is not approval. Update the plan and get a fresh verdict. |
+| "A denied source edit means the plan cannot be revised" | Product code stays paused; the canonical plan and Until scratch space remain editable. |
+| "I'll record their verdict for them" | Never. The reviewer owns the decision and the tool call. |
+| "I'll send them to approve in the web UI" | There is no browser approval control; use the review-session link. |
