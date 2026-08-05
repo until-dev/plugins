@@ -55,9 +55,11 @@ prompt names the submitted, cleared plan and assigns work within it.
 
 Local implementation waits until upload is confirmed and `get_plan` shows:
 
-- `review.requirement: not_required` with
-  `policy_reason: no_other_human`; or
+- `review.requirement: not_required`; or
 - `review.requirement: required` with an approved verdict from another human.
+
+`policy_reason` and membership never route; missing or unknown requirements do
+not clear.
 
 Chat approval, a Build-button click, a subagent recommendation, and a verdict
 recorded by the author do not clear a plan. Requested changes require

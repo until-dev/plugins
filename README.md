@@ -33,7 +33,7 @@ flowchart LR
 
 1. **Brainstorm** with your coding agent until the shape of the change is clear.
 2. **Plan** the work in enough detail for someone else to understand and build it.
-3. **Approve** — the Plan is cleared under your workspace's review policy. For team work, that means another person reviews it before implementation begins.
+3. **Approve** — the Plan is cleared under your workspace's saved review policy. Plans marked `not_required` proceed without Review; plans marked `required` need another person's approval before implementation begins.
 4. **Run** the Plan with your coding agent.
 5. **Check** the Pull request against what the team agreed. Where they differ, fix the code, accept the difference on the record, or take the work back to the Plan.
 
@@ -41,7 +41,7 @@ flowchart LR
 
 > No code until the Plan is agreed.
 
-For team work, another person reviews the Plan before implementation starts. Solo users can continue after submitting their Plan without pretending to review their own work.
+Until's saved policy decides whether a Plan needs Review. A confirmed `not_required` Plan proceeds without Review; a confirmed `required` Plan needs another person's approval before implementation starts.
 
 The argument behind the rule is our manifesto, [AI Is Not Your Peer](https://www.notyourpeer.com/): reviewing an agent's Pull request is auditing a machine, and the Plan is the part a person actually decided.
 

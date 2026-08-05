@@ -24,13 +24,13 @@ instruction.
 
 The plan clears in exactly one of these ways:
 
-- Peer review is not required: `review.requirement: not_required` with
-  `policy_reason: no_other_human`.
+- Peer review is not required: `review.requirement: not_required`.
 - Required review has another human's approved verdict.
 
 Verify with `get_plan` after upload. Missing policy, unfinished uploads, pending
 or negative verdicts, chat approval, and Build do not clear it. Never record a
-verdict on a plan you wrote.
+verdict on a plan you wrote. `policy_reason` and workspace membership never
+control clearance.
 
 **Clearance makes implementation available; it does not start it.** After
 first observing it, report readiness and STOP for a fresh “implement now”.
@@ -71,7 +71,7 @@ Cursor Cloud reports the contradiction and stops; the original Until Loop
 updates the Plan. Local sessions pause, explain what reality contradicted, update with
 `update_plan`, finish the upload, and confirm with `get_plan`:
 
-- A `not_required / no_other_human` plan can become ready again immediately.
+- A `not_required` plan can become ready again after upload confirmation.
 - A `required` plan needs a fresh approval from another human.
 
 After either path clears, report readiness and wait for a new “implement now”

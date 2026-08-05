@@ -11,7 +11,8 @@ traffic). Two enforcement modes:
    file edits and unrecognized shell execution. Read-only inspection and the
    short `pending_upload` stage remain available for the upload itself. Once
    `get_plan` confirms submission, shell enforcement closes again. A plan is
-   clear when peer review is not required or an approved verdict has landed.
+   clear only when that call confirms `not_required`, or `required` with an
+   approved lifecycle.
 
 2. Default-closed repos: a repo containing a `.until-method` marker file at
    its root follows the Until method for implementation changes. File edits
@@ -382,10 +383,13 @@ def main():
     in_flight = setup_required or (has_valid_plan and not build_allowed)
     skipped = os.path.exists(skip_path)
     plan_id = tracked_plan_id if has_valid_plan else "unavailable"
-    solo_policy_pending = (
+    review_requirement = (state or {}).get("review_requirement")
+    review_not_required_pending = (
         in_flight
-        and (state or {}).get("review_requirement") == "not_required"
-        and (state or {}).get("review_policy_reason") == "no_other_human"
+        and review_requirement == "not_required"
+    )
+    review_requirement_unrecognized = (
+        in_flight and review_requirement not in ("required", "not_required")
     )
 
     # agent_message is read by the model; user_message is shown VERBATIM in the
@@ -415,7 +419,7 @@ def main():
             f"Until: plan {plan_id}'s upload authorization expired — retry the "
             "submission to continue."
         )
-    elif solo_policy_pending:
+    elif review_not_required_pending:
         in_flight_agent_msg = (
             f"UNTIL GATE: plan {plan_id} does not require peer review, but its upload "
             "has not been confirmed through get_plan yet. Run the exact upload command "
@@ -426,6 +430,17 @@ def main():
         in_flight_user_msg = (
             f"Until: plan {plan_id} is still saving — building starts after I confirm "
             "it landed."
+        )
+    elif review_requirement_unrecognized:
+        in_flight_agent_msg = (
+            f"UNTIL GATE: plan {plan_id} has no recognized saved review "
+            "requirement. Implementation remains blocked. Confirm the current plan "
+            "with get_plan; do not infer policy from reasons, membership, reviewer "
+            "availability, or lifecycle fields, and do not request review."
+        )
+        in_flight_user_msg = (
+            f"Until has not confirmed a recognized review requirement for plan "
+            f"{plan_id} — building stays paused."
         )
     elif changes_requested:
         in_flight_agent_msg = (
@@ -464,8 +479,9 @@ def main():
         "conversation has none. No edits, "
         "no commits until then. The path forward is the method itself: load "
         "`brainstorming` to agree the shape with your partner, `writing-a-good-plan` "
-        "to draft it, and submit_plan. A solo plan proceeds after its upload is "
-        "confirmed; a team plan proceeds after another human approves it. A direct "
+        "to draft it, and submit_plan. A review-not-required plan proceeds after "
+        "its upload is confirmed; a review-required plan proceeds after another "
+        "human approves it. A direct "
         "instruction to make the change is the START of that "
         "conversation, not permission to bypass it. If your partner says "
         "“Don’t use the Until Loop for this.”, THEY must run this in their own terminal: "
