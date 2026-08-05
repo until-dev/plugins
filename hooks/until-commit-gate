@@ -583,5 +583,6 @@ if __name__ == "__main__":
         raise
     except Exception:
         # Fail open: a crashed gate must never brick the user's session.
-        print(json.dumps({"permission": "allow"}))
-        sys.exit(0)
+        # Route through allow() so Claude Code gets hookSpecificOutput shape
+        # when CLAUDE_OUTPUT was already set for this PreToolUse invocation.
+        allow()
