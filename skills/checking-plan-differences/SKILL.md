@@ -34,9 +34,8 @@ and the Plan claim it maps to.
 2. **Acknowledge it.** If the difference is intentional and correct, an
    authorized person records a genuine reason against its Difference slug.
 3. **Fix the Plan.** If the difference reveals that the Plan was wrong or
-   incomplete, call `update_plan`, finish the upload, and confirm it with
-   `get_plan`. `not_required` needs no Review; `required` needs fresh human
-   approval. Then let the next Plan check compare against the corrected Plan.
+   incomplete, call `update_plan`, complete the required Review again, and let
+   the next Plan check compare against the corrected Plan.
 
 ## Bias toward fixing
 
@@ -46,7 +45,7 @@ the Plan check outcome without addressing the gap. If in doubt, resolve it.
 ## Done means
 
 Every Plan difference is resolved, acknowledged with a Difference slug and
-reason, or closed by a cleared Plan update, and the Plan check outcome is
+reason, or closed by a reviewed Plan update, and the Plan check outcome is
 successful. The Pull request is ready for implementation-quality review.
 
 ## Red Flags — STOP

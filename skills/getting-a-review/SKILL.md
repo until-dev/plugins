@@ -24,12 +24,14 @@ review.
 
 Call `get_plan` and inspect the returned `review` object:
 
-- `requirement: not_required` — stop. Regardless of `policy_reason` or
-  available humans, do not request review or another sign-off. Report
-  implementation ready, then STOP for a fresh “implement now.”
+- `requirement: not_required`, `policy_reason: no_other_human` — stop using
+  this skill. Do not request review, run a review subagent, or ask for a local
+  sign-off. Tell your partner the plan is cleared and implementation is ready,
+  then STOP. Load `implementing-a-plan` only after a fresh “implement now”
+  instruction.
 - `requirement: required` — continue below.
-- Missing or unrecognized requirement — report not cleared and stop. Do not
-  infer from `policy_reason` or membership, and do not request review.
+- Missing policy fields — do not guess that the workspace is solo. Treat the
+  plan as requiring review and explain that Until has not cleared it.
 
 ## Send it to another human
 
@@ -70,12 +72,9 @@ Call `get_plan` again:
 
 If the assigned reviewer is no longer available, choose another active human.
 If none is available for a plan whose saved policy is `required`, say that the
-plan still requires peer review and stop. Reviewer availability does not change
-the saved requirement.
-
-Only when asked how Until reviews work or are enabled, say the Until team
-manages review requirements and direct them to the team. Do not surface this
-during normal routing.
+plan still requires peer review and stop. Do not invent a solo fallback: review
+policy is stamped when the plan is created, and existing plans remain on their
+saved policy.
 
 ## Choosing not to use the Until Loop
 
@@ -88,8 +87,8 @@ visibly unreviewed.
 
 | Thought | Reality |
 |---|---|
-| "There are teammates, so review must be required" | Membership does not decide. The saved requirement does. |
-| "The subagent recommended approve" | A model recommendation is not a human verdict. |
+| "It's a solo workspace, so I'll run a subagent review" | The saved policy decides. `not_required` skips this stage; `required` needs another human. |
+| "The subagent recommended approve" | A model recommendation is not a human verdict and is not part of the solo flow. |
 | "They said it looks good in chat" | Chat creates no review record. The assigned reviewer records their own verdict. |
 | "Revise, then approve is basically approval" | Revise is not approval. Update the plan and get a fresh verdict. |
 | "A denied source edit means the plan cannot be revised" | Product code stays paused; the canonical plan and Until scratch space remain editable. |

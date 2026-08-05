@@ -257,8 +257,7 @@ def main():
         # upload. When Until returns an upload instruction, reopen the short
         # pending_upload shell window so the body curl can run; get_plan after
         # upload closes it again. Title-only updates have no upload and stay
-        # submitted / gated. Required plans need a fresh verdict; plans whose
-        # saved requirement is not_required can reopen after confirmation.
+        # submitted / gated. Team plans then need a fresh verdict; solo reopen.
         stage = "pending_upload" if opens_upload_window(result) else "submitted"
         if state is None:
             pid = find_plan_id(result)
@@ -338,13 +337,9 @@ def main():
             if plan_status(result) == "pending_upload":
                 state["stage"] = "pending_upload"
                 replace_upload_authorization(state, result, retain_existing=True)
-            elif policy and policy[0] == "not_required":
+            elif policy == ("not_required", "no_other_human"):
                 state["stage"] = "review_not_required"
-            elif (
-                policy
-                and policy[0] == "required"
-                and current_lifecycle_stage(result) == "approved"
-            ):
+            elif current_lifecycle_stage(result) == "approved":
                 state["stage"] = "approved"
             elif current_lifecycle_stage(result) == "changes_requested":
                 state["stage"] = "changes_requested"
