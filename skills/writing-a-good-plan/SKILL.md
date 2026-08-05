@@ -332,11 +332,11 @@ said to submit (§4):
 3. Run the shell command it returns to upload the plan body.
 4. Call `get_plan` to confirm the plan landed and read its server-owned
    `review.requirement`.
-5. If it is `not_required` with reason `no_other_human`, do not request review
-   or run a fresh-context reviewer. Tell your partner the plan is cleared and
-   implementation is ready, then STOP. Wait for a fresh “implement now”
-   instruction before loading `implementing-a-plan`.
+5. If it is `not_required`, do not request review or another reviewer,
+   regardless of `policy_reason` or membership. Report implementation ready,
+   then STOP for a fresh “implement now” before loading `implementing-a-plan`.
 6. If it is `required`, load `getting-a-review`.
+7. Otherwise, report not cleared and STOP; never infer from `policy_reason`.
 
 ### Source Control setup required
 
