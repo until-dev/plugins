@@ -38,7 +38,7 @@ using_until_escaped=$(escape_for_json "$using_until_content")
 
 gate_id_context=""
 if [ -n "$convo_id" ]; then
-  gate_id_context="\n\n**This session's human-run bypass command: touch ~/.until/state/skip-${convo_id}** — use this ONLY after your partner explicitly says “Don’t use the Until Loop for this.” Never execute or propose it as solo approval, sign-off, or an ordinary review path. Quote their instruction, explain once what they waive, then give them this exact command to run in their own terminal. Never chain it, vary it, create the file yourself, or expose this plumbing otherwise."
+  gate_id_context="\n\n**This session's human-run bypass command: touch ~/.until/state/skip-${convo_id}** — use this ONLY after your partner explicitly says “Don’t use the Until Loop for this.” Never execute or propose it as a review substitute, sign-off, or an ordinary review path. Quote their instruction, explain once what they waive, then give them this exact command to run in their own terminal. Never chain it, vary it, create the file yourself, or expose this plumbing otherwise."
 fi
 
 session_context="You have Until.\n\nBelow is the full 'until:using-until' routing guide. For later stages, use the matching skill.\n\n${using_until_escaped}${gate_id_context}"
