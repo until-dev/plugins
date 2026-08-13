@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "until": {
-      "url": "https://run.until.dev/brent/mcp"
+      "url": "https://run.until.dev/mcp"
     }
   }
 }

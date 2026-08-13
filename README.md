@@ -2,13 +2,17 @@
 
 The outer loop for coding agents.
 
-Until moves peer review onto the Plan, while decisions are still easy to change and before a coding agent writes any code. For teams where agent-written PRs have started to outrun meaningful review.
+Until moves the important decisions into the Plan before a coding agent writes any code. It then enforces that Plan during implementation and checks the resulting pull request against it.
+
+For individual developers and teams whose agents can produce code faster than they can confidently review it.
 
 This plugin connects Cursor and Claude Code to Until, guiding the agent through the Until Loop and enforcing it while you work.
 
+The open-source plugin runs alongside your coding agent. The hosted Until workspace stores Plans and, once you connect source control, links them to pull requests and runs Plan checks.
+
 ## Quickstart
 
-In Claude Code:
+Install Until in Claude Code:
 
 ```text
 claude
@@ -16,9 +20,18 @@ claude
 > /plugin install until@until
 ```
 
-Restart the session, run `/mcp` to complete the OAuth, then start a fresh conversation.
+Restart the session, run `/mcp` to complete authentication, then start a fresh conversation. Until will guide you through creating a workspace. You can connect source control later, when you submit your first Plan for repository-backed work.
 
-You'll need an Until workspace connected to your source-control provider — create one at [until.dev](https://until.dev). Cursor setup is [below](#cursor).
+Cursor setup is [below](#cursor).
+
+## Documentation
+
+- [Set up Until](docs/setup.md)
+- [Run your first Until Loop](docs/first-until-loop.md)
+- [Plan approvals](docs/plan-approvals.md)
+- [Plan checks](docs/plan-checks.md)
+- [Custom Loops](docs/custom-loops.md)
+- [Troubleshooting](docs/troubleshooting.md)
 
 ## The Until Loop
 
@@ -26,86 +39,124 @@ A change stays in the Until Loop until the implementation matches the Plan.
 
 ```mermaid
 flowchart LR
-    B[Brainstorm] --> P[Plan] --> A[Approve] --> R[Run] --> C[Check] --> D([done])
+    B[Brainstorm] --> P[Plan] --> S[Submit] --> R[Run] --> C[Check] --> D([done])
     C -->|fix the code| R
-    C -->|difference accepted on the record| D
+    C -->|difference acknowledged on the record| D
 ```
 
 1. **Brainstorm** with your coding agent until the shape of the change is clear.
 2. **Plan** the work in enough detail for someone else to understand and build it.
-3. **Approve** — the Plan is cleared under your workspace's saved review policy. Plans marked `not_required` proceed without Review; plans marked `required` need another person's approval before implementation begins.
-4. **Run** the Plan with your coding agent.
-5. **Check** the Pull request against what the team agreed. Where they differ, fix the code, accept the difference on the record, or take the work back to the Plan.
+3. **Submit** the Plan as the target for implementation. If its saved policy requires Review, another person must approve it before implementation.
+4. **Run** the Plan with your coding agent. Until keeps the Plan attached to the work while the agent implements it.
+5. **Check** the pull request against the Plan. Where they differ, fix the code, correct the Plan, or acknowledge the difference on the record.
 
 ## The Until Rule
 
 > No code until the Plan is agreed.
 
-Until's saved policy decides whether a Plan needs Review. A confirmed `not_required` Plan proceeds without Review; a confirmed `required` Plan needs another person's approval before implementation starts.
+How the Plan is agreed depends on its saved Review policy. Plans that do not require Review proceed after submission is confirmed. Plans that require Review need another person's approval before implementation.
 
-The argument behind the rule is our manifesto, [AI Is Not Your Peer](https://www.notyourpeer.com/): reviewing an agent's Pull request is auditing a machine, and the Plan is the part a person actually decided.
+The argument behind the rule is our manifesto, [AI Is Not Your Peer](https://www.notyourpeer.com/). A coding agent cannot defend its decisions like a human author. The Plan records the intent before someone has to reconstruct it from a finished pull request.
 
 ## Plan checks
 
-After a Pull request opens, Until compares it with the Plan and reports anything missing, changed, or outside the agreed scope.
+After a pull request opens, Until compares it with the Plan and reports anything missing, changed or outside its scope.
 
-Plan checks require the repository to be connected to Until through its source-control provider. Until links the Pull request to its Plan and runs the check again whenever new code is pushed.
+Plan checks require a source-control connection. When you submit your first Plan for repository-backed work, Until will guide you through connecting your provider. It later links the pull request to that Plan and checks again whenever new code is pushed.
 
-A difference is not automatically a failure. The agent can fix the code or an authorized person can accept the difference on the record. The Plan check passes once nothing remains unaddressed.
+A difference is not automatically a failure. You can ask the agent to fix the code, correct and reclear the Plan, or have an authorized person acknowledge the difference on the record. A check is successful only when no differences remain; acknowledged differences produce a neutral, non-blocking outcome.
 
 ## Extend with Custom Loops
 
-Custom Loops let Until handle the paperwork around a change — updating tickets, refreshing stale docs, reporting status in Slack. They're written in Markdown and kept in git, so the team reviews and changes them like any other code.
+Custom Loops handle the paperwork around a change: updating tickets, refreshing stale documentation and reporting progress in Slack.
+
+They are written in Markdown and kept in git, so you can inspect and change them alongside the rest of your development process.
 
 ## Install
 
 ### Requirements
 
-- An [Until workspace](https://until.dev), with a source-control provider connected to it
 - Cursor or Claude Code
 - macOS or Linux
-- `python3` on `PATH`, for the enforcement hooks
+- `python3` on `PATH` for the enforcement hooks
 
-Windows is not supported yet. The skills that teach the Until Loop may load, but the hooks that track Plan state and enforce the Until Rule are not reliably launched or validated there, so nothing on Windows will stop an agent writing code without a Plan.
+Windows is not supported yet. The skills that teach the Until Loop may load, but the hooks that track Plan state and enforce the Until Rule are not reliably launched or validated there. Nothing on Windows will stop an agent from writing code without a Plan.
 
 ### Claude Code
 
-Follow the [Quickstart](#quickstart). Claude Code dispatches every hook event from the plugin's own `hooks.json`, so there is no extra step. The VS Code extension shares user-level plugin state, so one install covers both.
+Follow the [Quickstart](#quickstart). Claude Code loads its enforcement hooks from the plugin, so there is no separate hook-installation step.
 
 ### Cursor
 
-1. Clone `until-dev/plugins`, then add the folder as a plugin or symlink it into Cursor's local plugin directory: `ln -s ~/src/plugins ~/.cursor/plugins/local/until`.
-2. Run `./hooks/install-user-hooks.sh` once.
-3. Reload the window (Developer: Reload Window) and start a fresh chat.
+Clone the plugin into a permanent location:
 
-Step 2 is a platform limitation rather than a design choice. Cursor dispatches plugin-shipped hooks for `sessionStart`, but the enforcement events (`afterMCPExecution`, `beforeShellExecution`, `preToolUse`) load only from the user or project `hooks.json` chain, so the hard rails have to be installed at user level for now. The gate is inert in conversations with no Until Plan in flight, so installing it globally is safe.
+```bash
+git clone https://github.com/until-dev/plugins.git ~/src/until-plugins
+mkdir -p ~/.cursor/plugins/local
+ln -s ~/src/until-plugins ~/.cursor/plugins/local/until
+```
+
+Install the user-level enforcement hooks:
+
+```bash
+cd ~/src/until-plugins
+./hooks/install-user-hooks.sh
+```
+
+Reload the window with **Developer: Reload Window**, then start a fresh chat.
+
+The extra hook installation is a platform limitation rather than a design choice. Cursor dispatches plugin-shipped hooks for `sessionStart`, but the enforcement events (`afterMCPExecution`, `beforeShellExecution`, `preToolUse`) load only from the user or project `hooks.json` chain.
+
+The enforcement hooks are inactive in ordinary conversations until Plan submission or source-control setup begins. A repository containing `.until-method` is enforced before a Plan exists. Installing the hooks globally is therefore safe.
+
+### Verify the installation
+
+Start a fresh conversation and ask your agent to implement a small change.
+
+Until should begin by helping you shape the change and create a Plan before writing code. After the Plan is cleared, it should stop again until you explicitly start implementation. If either stop is missing, follow the [enforcement troubleshooting steps](docs/troubleshooting.md#the-agent-starts-implementing-before-there-is-a-plan). In an ordinary repository, pre-Plan behaviour comes from the plugin's session guidance; user-level hooks begin enforcement when submission or source-control setup starts. A `.until-method` repository is enforced before submission.
 
 ### Updating
 
-Claude Code updates through the plugin manager. On Cursor, pull the latest in your clone and reload the window; if the hooks changed, run `./hooks/install-user-hooks.sh` again.
+Claude Code updates through the plugin manager.
+
+On Cursor, update the cloned repository and reload the window:
+
+```bash
+cd ~/src/until-plugins
+git pull
+```
+
+The existing hook entries point into that clone and do not need reinstalling after an ordinary pull. If the clone moved or the hooks are missing, follow [Troubleshooting](docs/troubleshooting.md#until-enforcement-hooks-do-not-run).
 
 ### Uninstalling
 
-On Claude Code, remove the plugin through the plugin manager. On Cursor, delete the symlink and remove the Until entries from your user-level `hooks.json`.
+On Claude Code, remove the plugin through the plugin manager.
+
+On Cursor, delete the plugin symlink and remove the Until entries from your user-level `hooks.json`.
 
 ## Bypassing the Until Loop
 
-Tell your agent not to use the Until Loop for the current change. Clicking Build or saying "looks good" does not count, and the agent cannot make that choice for you. Until explains what you are giving up, then stands aside.
+Tell your agent not to use the Until Loop for the current change.
+
+Clicking Build or saying "looks good" does not count, and the agent cannot make that choice for you. Until explains what you are giving up. When enforcement is active, it also gives you a session-specific bypass command that you must run in your own terminal; the agent cannot run it for you.
 
 ## FAQ
 
 **How is this different from Superpowers?**
-Until adapts parts of Superpowers' brainstorming and planning method (with thanks — see [License](#license)). Until adds workspace review policy, deterministic enforcement, and Pull request checks against the cleared Plan.
+
+Until adapts parts of Superpowers' brainstorming and planning method, with thanks to its contributors. Until adds shared Plans, optional Plan approval, deterministic enforcement and pull request checks against the Plan. See the [License](#license) for attribution.
 
 **Does every change need a Plan?**
-The Until Rule applies to changes an agent implements. You can bypass it per change, on the record.
+
+The Until Rule applies to changes an agent implements. You can bypass it for a particular change.
 
 **What happens if the agent ignores the Plan?**
-The Plan check on the Pull request reports the difference. Someone fixes the code, accepts the difference, or takes the work back to the Plan — either way, it's a decision a person made, recorded.
+
+The Plan check reports the difference on the pull request. You can ask the agent to fix the code, correct the Plan, or acknowledge the difference on the record. Either way, the difference requires a decision from you.
 
 ## Support
 
-- **Issues**: [github.com/until-dev/plugins/issues](https://github.com/until-dev/plugins/issues)
+- **Issues:** [github.com/until-dev/plugins/issues](https://github.com/until-dev/plugins/issues)
 - Until is built by the team behind [AI Is Not Your Peer](https://www.notyourpeer.com/).
 
 ## License
