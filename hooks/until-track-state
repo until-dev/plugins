@@ -346,6 +346,16 @@ def main():
                 and current_lifecycle_stage(result) == "approved"
             ):
                 state["stage"] = "approved"
+            elif (
+                policy
+                and policy[0] in ("required", "not_required")
+                and current_lifecycle_stage(result) in ("implementing", "done")
+            ):
+                # Implementation started or completed with recognized policy.
+                # Backend validates approval before advancing required plans.
+                # not_required plans are already cleared above, so this catches
+                # required plans that reached implementing/done after approval.
+                state["stage"] = "approved"
             elif current_lifecycle_stage(result) == "changes_requested":
                 state["stage"] = "changes_requested"
             else:
