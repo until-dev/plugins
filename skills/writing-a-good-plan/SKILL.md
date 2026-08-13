@@ -113,7 +113,7 @@ re-typing the plan into chat.
 
 **One plan artifact, and it's the Until one.** Some repos ship their own
 planning commands or templates (a `/create-implementation-plan` command,
-plan files under `~/.cursor/plans/`, a docs template). Those are drafting
+plan files under `~/.until/plans/`, a docs template). Those are drafting
 surfaces at best — the Until Plan is the single canonical artifact, the
 only one submitted and reviewed. If a host command already produced a plan
 document, adopt its content into the Until draft and retire the original;
