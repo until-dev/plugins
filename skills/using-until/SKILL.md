@@ -25,8 +25,8 @@ requested in this turn:
   Enter the implementation route below.
 
 Shape-only repository artifacts are allowed only when the partner explicitly
-requests uncommitted Markdown below `docs/plans/`, `docs/design/`, or
-`docs/specs/`. Every other repository edit is implementation.
+requests uncommitted Markdown below `docs/design/` or `docs/specs/`. Every
+other repository edit is implementation.
 
 ## Route implementation from its current stage
 

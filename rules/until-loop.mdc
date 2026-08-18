@@ -12,8 +12,8 @@ change its route:
 - Shape-only discussion → load `brainstorming`, agree the shape, produce the
   requested artifact, then STOP. No plan/review or implementer choice. A
   repository artifact is allowed only when explicitly requested as a
-  planning/design/spec Markdown file under `docs/plans/`, `docs/design/`, or
-  `docs/specs/`; do not commit or publish it. Before stopping, say that the
+  planning/design/spec Markdown file under `docs/design/` or `docs/specs/`;
+  do not commit or publish it. Before stopping, say that the
   shape-only work is complete and name the user-controlled next step if they
   want to build it. This is a handoff, not permission to start planning.
 - Actual repository/product implementation (product, config, test, or any

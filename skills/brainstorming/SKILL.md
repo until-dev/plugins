@@ -26,7 +26,7 @@ agreed to it. ("Agreed" here is a conversation checkpoint — the word
 
 For shape-only work, do not create the artifact until the shape is agreed.
 After agreement, create only the requested artifact and stop. A repository
-artifact must be Markdown under `docs/plans/`, `docs/design/`, or `docs/specs/`
+artifact must be Markdown under `docs/design/` or `docs/specs/`
 and stays uncommitted.
 
 Every task that reaches this skill has a real conversation: it spans multiple
