@@ -38,15 +38,16 @@ Call `get_plan` and inspect the returned `review` object:
 3. Stop and wait for your partner's selection.
 4. Call `request_review` with the plan ID and only the selected person's
    `reviewer_principal_id`.
-5. Share the returned review-session link with your partner and say who has it,
-   then stop.
+5. Tell your partner who was assigned and that they must open their own Until
+   session to record the verdict, then stop.
 
 Do not call `request_review` to discover reviewers. A call without
 `reviewer_principal_id` can create an unintended assignment; reviewer selection
 belongs to your partner.
 
-There is no browser approval button. The web page is a viewing surface; the
-review-session deep link opens the reviewer's agent session.
+There is no browser approval button and no shareable review-session URL.
+`request_review` returns review metadata only — do not invent or derive a link.
+The assigned reviewer records their verdict in their own Until session.
 
 ## After the reviewer responds
 
@@ -94,4 +95,4 @@ visibly unreviewed.
 | "Revise, then approve is basically approval" | Revise is not approval. Update the plan and get a fresh verdict. |
 | "A denied source edit means the plan cannot be revised" | Product code stays paused; the canonical plan and Until scratch space remain editable. |
 | "I'll record their verdict for them" | Never. The reviewer owns the decision and the tool call. |
-| "I'll send them to approve in the web UI" | There is no browser approval control; use the review-session link. |
+| "I'll send them to approve in the web UI" | There is no browser approval control; they must open their own Until session. |
