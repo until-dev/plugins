@@ -6,9 +6,9 @@ before installation.
 
 ## Requirements
 
-- Claude Code or Cursor
+- Claude Code, Codex or Cursor
 - macOS or Linux
-- `python3` on `PATH` for the enforcement hooks
+- `python3` on `PATH` for the Claude Code and Cursor enforcement hooks
 
 Windows is not supported yet. The guidance may load, but the hooks that enforce
 the Until Rule are not reliably launched or validated there.
@@ -28,6 +28,18 @@ conversation. Until will guide you through creating or joining a workspace.
 
 Claude Code loads the enforcement hooks from the plugin. No separate hook
 installation is required.
+
+## Codex
+
+Install Until through Codex's plugin marketplace:
+
+```bash
+codex plugin marketplace add until-dev/plugins
+codex plugin add until@until
+```
+
+Restart Codex and start a new task. The plugin registers Until's MCP server
+automatically.
 
 ## Cursor
 
@@ -90,6 +102,8 @@ If either stop is missing, see [Troubleshooting](troubleshooting.md).
 
 Claude Code updates Until through its plugin manager.
 
+Update Until through Codex's plugin manager, then restart Codex.
+
 For Cursor, update the clone:
 
 ```bash
@@ -104,6 +118,13 @@ entries are missing, follow [Troubleshooting](troubleshooting.md#until-enforceme
 ## Uninstalling
 
 In Claude Code, remove Until through the plugin manager.
+
+In Codex, remove Until and its marketplace:
+
+```bash
+codex plugin remove until@until
+codex plugin marketplace remove until
+```
 
 In Cursor, remove the local plugin or symlink. Then remove the Until entries
 from `~/.cursor/hooks.json` if you installed them there.

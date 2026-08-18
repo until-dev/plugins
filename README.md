@@ -6,7 +6,7 @@ Until moves the important decisions into the Plan before a coding agent writes a
 
 For individual developers and teams whose agents can produce code faster than they can confidently review it.
 
-This plugin connects Cursor and Claude Code to Until, guiding the agent through the Until Loop and enforcing it while you work.
+This plugin connects Cursor, Claude Code and Codex to Until, guiding the agent through the Until Loop.
 
 The open-source plugin runs alongside your coding agent. The hosted Until workspace stores Plans and, once you connect source control, links them to pull requests and runs Plan checks.
 
@@ -22,7 +22,7 @@ claude
 
 Restart the session, run `/mcp` to complete authentication, then start a fresh conversation. Until will guide you through creating a workspace. You can connect source control later, when you submit your first Plan for repository-backed work.
 
-Cursor setup is [below](#cursor).
+Installation instructions for Codex and Cursor are [below](#install).
 
 ## Documentation
 
@@ -76,15 +76,26 @@ They are written in Markdown and kept in git, so you can inspect and change them
 
 ### Requirements
 
-- Cursor or Claude Code
+- Cursor, Claude Code or Codex
 - macOS or Linux
-- `python3` on `PATH` for the enforcement hooks
+- `python3` on `PATH` for the Claude Code and Cursor enforcement hooks
 
 Windows is not supported yet. The skills that teach the Until Loop may load, but the hooks that track Plan state and enforce the Until Rule are not reliably launched or validated there. Nothing on Windows will stop an agent from writing code without a Plan.
 
 ### Claude Code
 
 Follow the [Quickstart](#quickstart). Claude Code loads its enforcement hooks from the plugin, so there is no separate hook-installation step.
+
+### Codex
+
+Install Until through Codex's plugin marketplace:
+
+```bash
+codex plugin marketplace add until-dev/plugins
+codex plugin add until@until
+```
+
+Restart Codex and start a new task. The plugin registers Until's MCP server automatically.
 
 ### Cursor
 
@@ -119,6 +130,8 @@ Until should begin by helping you shape the change and create a Plan before writ
 
 Claude Code updates through the plugin manager.
 
+Update Until through Codex's plugin manager, then restart Codex.
+
 On Cursor, update the cloned repository and reload the window:
 
 ```bash
@@ -131,6 +144,13 @@ The existing hook entries point into that clone and do not need reinstalling aft
 ### Uninstalling
 
 On Claude Code, remove the plugin through the plugin manager.
+
+On Codex, remove the plugin and marketplace:
+
+```bash
+codex plugin remove until@until
+codex plugin marketplace remove until
+```
 
 On Cursor, delete the plugin symlink and remove the Until entries from your user-level `hooks.json`.
 
