@@ -40,13 +40,15 @@
       "./skills"
     ]
   },
-  "bundledDependencies": [
-    "pi-mcp-adapter"
-  ],
   "dependencies": {
     "pi-mcp-adapter": "2.26.1"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"
+  },
+  "peerDependenciesMeta": {
+    "@earendil-works/pi-coding-agent": {
+      "optional": true
+    }
   }
 }
