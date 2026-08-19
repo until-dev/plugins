@@ -77,11 +77,11 @@ general-purpose security sandbox.
 
 ## Pi
 
-Before the npm package is published, install Until from its public Git
-repository:
+Before the npm package is published, install the tagged Until release from its
+public Git repository:
 
 ```bash
-pi install git:github.com/until-dev/plugins
+pi install git:github.com/until-dev/plugins@v0.2.4
 ```
 
 For local pre-release testing, install this repository's plugin directory:
@@ -103,10 +103,11 @@ After the package publication task is complete, this equivalent npm command
 will be available:
 
 ```bash
-pi install npm:until-plugin
+pi install npm:@until-dev/plugins
 ```
 
-Do not use the npm command until the package has been published.
+Do not use the npm command until ENG-6255 publishes the package. This GitHub
+release does not make Until available on npm or in the Pi package catalog.
 
 Pi support includes the Until skills, startup guidance and MCP tools. It does
 not include the deterministic enforcement hooks used by Cursor and Claude Code.
@@ -140,11 +141,14 @@ Claude Code updates Until through its plugin manager.
 
 Update Until through Codex's plugin manager, then restart Codex.
 
-Update Pi packages and reconcile their Git sources:
+Refresh the installed Pi package at its pinned Git tag:
 
 ```bash
 pi update --extensions
 ```
+
+Git tags are immutable. To move to a later Until release, remove this tagged
+source and install the newer tagged source.
 
 For Cursor, update the clone:
 
@@ -174,7 +178,7 @@ from `~/.cursor/hooks.json` if you installed them there.
 In Pi, remove the source you installed:
 
 ```bash
-pi remove git:github.com/until-dev/plugins
+pi remove git:github.com/until-dev/plugins@v0.2.4
 ```
 
 For a local pre-release installation, pass the same absolute plugin path to

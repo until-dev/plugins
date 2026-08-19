@@ -317,8 +317,10 @@ tool is unavailable. See [Custom Loop integrations](custom-loops.md#integrations
 3. Start a fresh conversation.
 4. For Cursor, verify the existing user-hook entries and paths using
    [Until enforcement hooks do not run](#until-enforcement-hooks-do-not-run).
-5. For Pi, run `pi list` to confirm the installed source, then
-   `pi update --extensions`.
+5. For Pi, run `pi list` to confirm the installed source. The Git installation
+   is pinned to an immutable tag, so `pi update --extensions` only refreshes
+   that release. To move to a later release, remove the tagged source and
+   install the newer tagged source as described in [Set up Until](setup.md).
 
 After an ordinary `git pull` in an unmoved clone, rerunning the hook installer
 is unnecessary and does not rewrite existing entries.

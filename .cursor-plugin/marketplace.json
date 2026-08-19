@@ -12,7 +12,7 @@
       "name": "until",
       "source": ".",
       "description": "The outer loop for coding agents. No code until the Plan is agreed — Until moves peer review onto the Plan and checks every Pull request against it.",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "homepage": "https://until.dev",
       "repository": "https://github.com/until-dev/plugins",
       "keywords": [

@@ -1,6 +1,6 @@
 {
-  "name": "until-plugin",
-  "version": "0.2.3",
+  "name": "@until-dev/plugins",
+  "version": "0.2.4",
   "description": "The outer loop for coding agents.",
   "type": "module",
   "license": "MIT",

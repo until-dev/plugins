@@ -122,10 +122,11 @@ The enforcement hooks are inactive in ordinary conversations until Plan submissi
 
 ### Pi
 
-Before the npm release, install Until from the public Git repository:
+Before the npm release, install the tagged Until release from the public Git
+repository:
 
 ```bash
-pi install git:github.com/until-dev/plugins
+pi install git:github.com/until-dev/plugins@v0.2.4
 ```
 
 For local pre-release testing, point Pi at this plugin directory instead:
@@ -162,11 +163,14 @@ git pull
 
 The existing hook entries point into that clone and do not need reinstalling after an ordinary pull. If the clone moved or the hooks are missing, follow [Troubleshooting](docs/troubleshooting.md#until-enforcement-hooks-do-not-run).
 
-Update the Pi package with:
+Refresh the installed Pi package at its pinned Git tag with:
 
 ```bash
 pi update --extensions
 ```
+
+Git tags are immutable. To move to a later Until release, remove this tagged
+source and install the newer tagged source.
 
 ### Uninstalling
 
@@ -184,7 +188,7 @@ On Cursor, delete the plugin symlink and remove the Until entries from your user
 On Pi, remove the package:
 
 ```bash
-pi remove git:github.com/until-dev/plugins
+pi remove git:github.com/until-dev/plugins@v0.2.4
 ```
 
 ## Bypassing the Until Loop
