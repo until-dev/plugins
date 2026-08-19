@@ -6,7 +6,7 @@ before installation.
 
 ## Requirements
 
-- Claude Code, Codex or Cursor
+- Claude Code, Codex, Cursor or Pi
 - macOS or Linux
 - `python3` on `PATH` for the Claude Code and Cursor enforcement hooks
 
@@ -75,6 +75,42 @@ Claude Code and Cursor expose different hook events, so their exact enforcement
 coverage differs. The hooks guard supported coding actions; they are not a
 general-purpose security sandbox.
 
+## Pi
+
+Before the npm package is published, install Until from its public Git
+repository:
+
+```bash
+pi install git:github.com/until-dev/plugins
+```
+
+For local pre-release testing, install this repository's plugin directory:
+
+```bash
+pi install /absolute/path/to/workspace/plugins
+```
+
+Start Pi and authenticate the bundled MCP adapter:
+
+```text
+/mcp-auth until
+```
+
+Complete the browser flow, then run `/mcp` to confirm that the Until server is
+available. Start a fresh Pi session so the Until startup guidance is loaded.
+
+After the package publication task is complete, this equivalent npm command
+will be available:
+
+```bash
+pi install npm:until-plugin
+```
+
+Do not use the npm command until the package has been published.
+
+Pi support includes the Until skills, startup guidance and MCP tools. It does
+not include the deterministic enforcement hooks used by Cursor and Claude Code.
+
 ## Source control
 
 You can install Until and begin shaping a change before connecting source
@@ -104,6 +140,12 @@ Claude Code updates Until through its plugin manager.
 
 Update Until through Codex's plugin manager, then restart Codex.
 
+Update Pi packages and reconcile their Git sources:
+
+```bash
+pi update --extensions
+```
+
 For Cursor, update the clone:
 
 ```bash
@@ -128,5 +170,14 @@ codex plugin marketplace remove until
 
 In Cursor, remove the local plugin or symlink. Then remove the Until entries
 from `~/.cursor/hooks.json` if you installed them there.
+
+In Pi, remove the source you installed:
+
+```bash
+pi remove git:github.com/until-dev/plugins
+```
+
+For a local pre-release installation, pass the same absolute plugin path to
+`pi remove`.
 
 Next: [Run your first Until Loop](first-until-loop.md).

@@ -6,7 +6,7 @@ Until moves the important decisions into the Plan before a coding agent writes a
 
 For individual developers and teams whose agents can produce code faster than they can confidently review it.
 
-This plugin connects Cursor, Claude Code and Codex to Until, guiding the agent through the Until Loop.
+This plugin connects Cursor, Claude Code, Codex and Pi to Until, guiding the agent through the Until Loop.
 
 The open-source plugin runs alongside your coding agent. The hosted Until workspace stores Plans and, once you connect source control, links them to pull requests and runs Plan checks.
 
@@ -22,7 +22,7 @@ claude
 
 Restart the session, run `/mcp` to complete authentication, then start a fresh conversation. Until will guide you through creating a workspace. You can connect source control later, when you submit your first Plan for repository-backed work.
 
-Installation instructions for Codex and Cursor are [below](#install).
+Installation instructions for Codex, Cursor and Pi are [below](#install).
 
 ## Documentation
 
@@ -76,7 +76,7 @@ They are written in Markdown and kept in git, so you can inspect and change them
 
 ### Requirements
 
-- Cursor, Claude Code or Codex
+- Cursor, Claude Code, Codex or Pi
 - macOS or Linux
 - `python3` on `PATH` for the Claude Code and Cursor enforcement hooks
 
@@ -120,6 +120,27 @@ The extra hook installation is a platform limitation rather than a design choice
 
 The enforcement hooks are inactive in ordinary conversations until Plan submission or source-control setup begins. A repository containing `.until-method` is enforced before a Plan exists. Installing the hooks globally is therefore safe.
 
+### Pi
+
+Before the npm release, install Until from the public Git repository:
+
+```bash
+pi install git:github.com/until-dev/plugins
+```
+
+For local pre-release testing, point Pi at this plugin directory instead:
+
+```bash
+pi install /absolute/path/to/workspace/plugins
+```
+
+Start Pi, run `/mcp-auth until`, and complete authentication in the browser.
+Then start a fresh session. Until's skills and startup guidance should be
+available, and `/mcp` should show the Until server.
+
+This first Pi release supports the Until workflow and MCP tools. Pi does not
+load the deterministic Cursor and Claude Code enforcement hooks.
+
 ### Verify the installation
 
 Start a fresh conversation and ask your agent to implement a small change.
@@ -141,6 +162,12 @@ git pull
 
 The existing hook entries point into that clone and do not need reinstalling after an ordinary pull. If the clone moved or the hooks are missing, follow [Troubleshooting](docs/troubleshooting.md#until-enforcement-hooks-do-not-run).
 
+Update the Pi package with:
+
+```bash
+pi update --extensions
+```
+
 ### Uninstalling
 
 On Claude Code, remove the plugin through the plugin manager.
@@ -153,6 +180,12 @@ codex plugin marketplace remove until
 ```
 
 On Cursor, delete the plugin symlink and remove the Until entries from your user-level `hooks.json`.
+
+On Pi, remove the package:
+
+```bash
+pi remove git:github.com/until-dev/plugins
+```
 
 ## Bypassing the Until Loop
 

@@ -23,7 +23,8 @@ directory, or the editor was not restarted.
    [Set up Until](setup.md) for platform-specific steps.
 2. For Cursor, confirm the local plugin or symlink still points to the cloned
    repository.
-3. Restart Claude Code or reload Cursor with **Developer: Reload Window**.
+3. Restart Claude Code, reload Cursor with **Developer: Reload Window**, or
+   start a fresh Pi session.
 4. Start a new conversation and ask the agent to implement a small change.
    Until should begin by shaping the change and drafting a Plan before writing
    code.
@@ -40,10 +41,12 @@ before the workspace was created or selected.
 1. In Claude Code, run `/mcp` and complete authentication.
 2. In Cursor, open settings, find MCP, and confirm the Until server is
    authenticated.
-3. Return to the same conversation after the browser flow.
-4. If Until presents a setup link, use that exact link rather than guessing a
+3. In Pi, run `/mcp` to confirm the Until server is listed, then run
+   `/mcp-auth until` and complete the browser flow.
+4. Return to the same conversation after the browser flow.
+5. If Until presents a setup link, use that exact link rather than guessing a
    workspace URL.
-5. Start a fresh conversation after authentication if the existing session
+6. Start a fresh conversation after authentication if the existing session
    still cannot see the workspace.
 
 Do not include OAuth tokens or other credentials in a support issue.
@@ -52,9 +55,9 @@ Do not include OAuth tokens or other credentials in a support issue.
 
 ### The agent starts implementing before there is a Plan
 
-In an ordinary repository, the user-level enforcement hooks are inactive before
-Plan submission begins. Pre-Plan behaviour depends on the session-start
-guidance loading correctly.
+In Claude Code and Cursor, the deterministic enforcement hooks are inactive in
+an ordinary repository before Plan submission begins. Pre-Plan behaviour
+depends on the session-start guidance loading correctly.
 
 **Try:**
 
@@ -65,10 +68,14 @@ guidance loading correctly.
 3. If the repository contains a `.until-method` marker, continue with
    [Until enforcement hooks do not run](#until-enforcement-hooks-do-not-run).
 
-A repository with `.until-method` is default-closed: its enforcement hooks
-block implementation changes before a Plan has been cleared. Repositories
-without that marker are protected after Plan submission or source-control setup
-begins, but not before.
+In Claude Code and Cursor, a repository with `.until-method` is default-closed:
+its enforcement hooks block implementation changes before a Plan has been
+cleared. Repositories without that marker are protected after Plan submission
+or source-control setup begins, but not before.
+
+Pi loads Until's startup guidance and MCP tools, but it does not load these
+deterministic enforcement hooks. If a Pi agent ignores the guidance, no hook
+blocks implementation, including in a repository with `.until-method`.
 
 On Windows, the guidance may load while enforcement does not. Windows is not a
 supported environment for the current hooks.
@@ -310,6 +317,8 @@ tool is unavailable. See [Custom Loop integrations](custom-loops.md#integrations
 3. Start a fresh conversation.
 4. For Cursor, verify the existing user-hook entries and paths using
    [Until enforcement hooks do not run](#until-enforcement-hooks-do-not-run).
+5. For Pi, run `pi list` to confirm the installed source, then
+   `pi update --extensions`.
 
 After an ordinary `git pull` in an unmoved clone, rerunning the hook installer
 is unnecessary and does not rewrite existing entries.
@@ -318,7 +327,7 @@ is unnecessary and does not rewrite existing entries.
 
 Include:
 
-- Claude Code or Cursor and its version;
+- Claude Code, Codex, Cursor or Pi and its version;
 - operating system;
 - Until plugin version or commit;
 - the step and documentation section followed;

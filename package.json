@@ -1,0 +1,52 @@
+{
+  "name": "until-plugin",
+  "version": "0.2.3",
+  "description": "The outer loop for coding agents.",
+  "type": "module",
+  "license": "MIT",
+  "author": {
+    "name": "Overmind",
+    "email": "hello@overmind.tech"
+  },
+  "homepage": "https://until.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/until-dev/plugins.git"
+  },
+  "keywords": [
+    "pi-package",
+    "pi",
+    "coding-agent",
+    "until",
+    "plan-first",
+    "peer-review"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    ".pi",
+    "docs",
+    "skills",
+    "LICENSE",
+    "README.md",
+    "mcp.json"
+  ],
+  "pi": {
+    "extensions": [
+      "./.pi/extensions/until.ts"
+    ],
+    "skills": [
+      "./skills"
+    ]
+  },
+  "bundledDependencies": [
+    "pi-mcp-adapter"
+  ],
+  "dependencies": {
+    "pi-mcp-adapter": "2.26.1"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  }
+}
