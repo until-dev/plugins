@@ -1,0 +1,53 @@
+name: Publish npm packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref to publish (for example v0.2.6). Leave empty to use this run’s ref.'
+        required: false
+        default: ''
+
+# Trusted publishing (OIDC) requires GitHub-hosted runners and id-token: write.
+# Configure each package on npmjs.com → Settings → Trusted Publisher:
+#   Organization: until-dev
+#   Repository: plugins
+#   Workflow filename: npm-publish.yml
+#   Allowed actions: npm publish
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref != '' && inputs.ref || github.ref }}
+
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+
+      - name: Ensure npm supports trusted publishing
+        # npm >= 11.5.1 is required for trusted publishing (OIDC). Pin exact.
+        run: npm install -g npm@11.19.0
+
+      - name: Publish catalog and install-only npm names
+        run: |
+          set -euo pipefail
+          npm publish --access public
+          node -e '
+            const fs = require("fs");
+            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            pkg.name = "@until-dev/plugins";
+            pkg.keywords = (pkg.keywords || []).filter((k) => k !== "pi-package");
+            fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+          '
+          npm publish --access public
