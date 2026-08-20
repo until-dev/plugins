@@ -1,6 +1,6 @@
 {
   "name": "pi-until-loop",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Spend your time on the engineering trade-offs that matter. Let the Until Loop make sure your agents deliver what you want, how you want it.",
   "type": "module",
   "license": "MIT",
@@ -40,7 +40,7 @@
     "skills": [
       "./skills"
     ],
-    "image": "https://unpkg.com/pi-until-loop@0.2.6/assets/pi-catalog.png"
+    "image": "https://unpkg.com/pi-until-loop@0.2.7/assets/pi-catalog.png"
   },
   "dependencies": {
     "pi-mcp-adapter": "2.26.1"
