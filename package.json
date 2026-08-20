@@ -1,7 +1,7 @@
 {
-  "name": "@until-dev/plugins",
-  "version": "0.2.5",
-  "description": "The outer loop for coding agents.",
+  "name": "pi-until-loop",
+  "version": "0.2.6",
+  "description": "Spend your time on the engineering trade-offs that matter. Let the Until Loop make sure your agents deliver what you want, how you want it.",
   "type": "module",
   "license": "MIT",
   "author": {
@@ -26,6 +26,7 @@
   },
   "files": [
     ".pi",
+    "assets",
     "docs",
     "skills",
     "LICENSE",
@@ -38,7 +39,8 @@
     ],
     "skills": [
       "./skills"
-    ]
+    ],
+    "image": "https://unpkg.com/pi-until-loop@0.2.6/assets/pi-catalog.png"
   },
   "dependencies": {
     "pi-mcp-adapter": "2.26.1"

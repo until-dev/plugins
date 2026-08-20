@@ -77,8 +77,16 @@ general-purpose security sandbox.
 
 ## Pi
 
-Before the npm package is published, install the tagged Until release from its
-public Git repository:
+Install Until from npm:
+
+```bash
+pi install npm:pi-until-loop
+```
+
+`pi install npm:@until-dev/plugins` still loads the same plugin if you already
+use that name. It is not the catalog listing.
+
+Git remains an alternative:
 
 ```bash
 pi install git:github.com/until-dev/plugins@v0.2.5
@@ -98,16 +106,6 @@ Start Pi and authenticate the bundled MCP adapter:
 
 Complete the browser flow, then run `/mcp` to confirm that the Until server is
 available. Start a fresh Pi session so the Until startup guidance is loaded.
-
-After the package publication task is complete, this equivalent npm command
-will be available:
-
-```bash
-pi install npm:@until-dev/plugins
-```
-
-Do not use the npm command until ENG-6255 publishes the package. This GitHub
-release does not make Until available on npm or in the Pi package catalog.
 
 Pi support includes the Until skills, startup guidance and MCP tools. It does
 not include the deterministic enforcement hooks used by Cursor and Claude Code.
@@ -141,14 +139,14 @@ Claude Code updates Until through its plugin manager.
 
 Update Until through Codex's plugin manager, then restart Codex.
 
-Refresh the installed Pi package at its pinned Git tag:
+Refresh the installed Pi package with:
 
 ```bash
-pi update --extensions
+pi update npm:pi-until-loop
 ```
 
-Git tags are immutable. To move to a later Until release, remove this tagged
-source and install the newer tagged source.
+Git tags are immutable. To move a Git install to a later Until release, remove
+this tagged source and install the newer tagged source.
 
 For Cursor, update the clone:
 
@@ -176,6 +174,12 @@ In Cursor, remove the local plugin or symlink. Then remove the Until entries
 from `~/.cursor/hooks.json` if you installed them there.
 
 In Pi, remove the source you installed:
+
+```bash
+pi remove npm:pi-until-loop
+```
+
+A Git install is removed with the same source you used to install it:
 
 ```bash
 pi remove git:github.com/until-dev/plugins@v0.2.5

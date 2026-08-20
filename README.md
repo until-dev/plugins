@@ -1,6 +1,6 @@
 # Until
 
-The outer loop for coding agents.
+Spend your time on the engineering trade-offs that matter. Let the Until Loop make sure your agents deliver what you want, how you want it.
 
 Until moves the important decisions into the Plan before a coding agent writes any code. It then enforces that Plan during implementation and checks the resulting pull request against it.
 
@@ -122,8 +122,16 @@ The enforcement hooks are inactive in ordinary conversations until Plan submissi
 
 ### Pi
 
-Before the npm release, install the tagged Until release from the public Git
-repository:
+Install Until from npm:
+
+```bash
+pi install npm:pi-until-loop
+```
+
+`pi install npm:@until-dev/plugins` still loads the same plugin if you already
+use that name. It is not the catalog listing.
+
+Git remains an alternative:
 
 ```bash
 pi install git:github.com/until-dev/plugins@v0.2.5
@@ -163,14 +171,14 @@ git pull
 
 The existing hook entries point into that clone and do not need reinstalling after an ordinary pull. If the clone moved or the hooks are missing, follow [Troubleshooting](docs/troubleshooting.md#until-enforcement-hooks-do-not-run).
 
-Refresh the installed Pi package at its pinned Git tag with:
+Refresh the installed Pi package with:
 
 ```bash
-pi update --extensions
+pi update npm:pi-until-loop
 ```
 
-Git tags are immutable. To move to a later Until release, remove this tagged
-source and install the newer tagged source.
+Git tags are immutable. To move a Git install to a later Until release, remove
+this tagged source and install the newer tagged source.
 
 ### Uninstalling
 
@@ -186,6 +194,12 @@ codex plugin marketplace remove until
 On Cursor, delete the plugin symlink and remove the Until entries from your user-level `hooks.json`.
 
 On Pi, remove the package:
+
+```bash
+pi remove npm:pi-until-loop
+```
+
+A Git install is removed with the same source you used to install it:
 
 ```bash
 pi remove git:github.com/until-dev/plugins@v0.2.5
