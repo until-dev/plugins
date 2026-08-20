@@ -126,7 +126,7 @@ Before the npm release, install the tagged Until release from the public Git
 repository:
 
 ```bash
-pi install git:github.com/until-dev/plugins@v0.2.4
+pi install git:github.com/until-dev/plugins@v0.2.5
 ```
 
 For local pre-release testing, point Pi at this plugin directory instead:
@@ -188,7 +188,7 @@ On Cursor, delete the plugin symlink and remove the Until entries from your user
 On Pi, remove the package:
 
 ```bash
-pi remove git:github.com/until-dev/plugins@v0.2.4
+pi remove git:github.com/until-dev/plugins@v0.2.5
 ```
 
 ## Bypassing the Until Loop

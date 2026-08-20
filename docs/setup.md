@@ -81,7 +81,7 @@ Before the npm package is published, install the tagged Until release from its
 public Git repository:
 
 ```bash
-pi install git:github.com/until-dev/plugins@v0.2.4
+pi install git:github.com/until-dev/plugins@v0.2.5
 ```
 
 For local pre-release testing, install this repository's plugin directory:
@@ -178,7 +178,7 @@ from `~/.cursor/hooks.json` if you installed them there.
 In Pi, remove the source you installed:
 
 ```bash
-pi remove git:github.com/until-dev/plugins@v0.2.4
+pi remove git:github.com/until-dev/plugins@v0.2.5
 ```
 
 For a local pre-release installation, pass the same absolute plugin path to
