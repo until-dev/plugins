@@ -20,6 +20,11 @@ import sys
 import time
 from datetime import datetime, timedelta, timezone
 
+_HOOKS_DIR = os.path.dirname(os.path.abspath(__file__))
+if _HOOKS_DIR not in sys.path:
+    sys.path.insert(0, _HOOKS_DIR)
+from session_stage import session_state_from_get_plan
+
 DEFAULT_UPLOAD_WINDOW = timedelta(minutes=15)
 
 STATE_DIR = os.path.expanduser("~/.until/state")
@@ -309,61 +314,14 @@ def main():
             state.pop("pending_upload_expires_at", None)
             save_state(state_path, state)
     elif "get_plan" in tool:
-        # Only the exact current plan response can release implementation.
-        # Review-tool results and nested review history are never clearance.
+        # Only get_plan for the tracked plan can release implementation.
+        # submit_review / get_review never grant clearance; get_plan.reviews[]
+        # can, via session_state_from_get_plan.
         tool_input = parse_tool_input(payload)
-        requested_id = (
-            tool_input.get("id") if isinstance(tool_input, dict) else None
-        )
-        result_id = result.get("id") if isinstance(result, dict) else None
-        if (
-            state is None
-            and isinstance(requested_id, str)
-            and requested_id == result_id
-            and PLAN_ID_RE.fullmatch(requested_id)
-            and current_lifecycle_stage(result) == "changes_requested"
-        ):
-            # A rejected plan is commonly reopened in a fresh conversation.
-            # Seed only this still-gated state; never grant clearance from an
-            # untracked plan lookup.
-            state = {"plan_id": requested_id}
-        tracked_id = (state or {}).get("plan_id")
-        if (
-            state is not None
-            and isinstance(tracked_id, str)
-            and isinstance(result, dict)
-            and result.get("id") == tracked_id
-        ):
-            policy = apply_review_policy(state, result)
-            if plan_status(result) == "pending_upload":
-                state["stage"] = "pending_upload"
-                replace_upload_authorization(state, result, retain_existing=True)
-            elif policy and policy[0] == "not_required":
-                state["stage"] = "review_not_required"
-            elif (
-                policy
-                and policy[0] == "required"
-                and current_lifecycle_stage(result) == "approved"
-            ):
-                state["stage"] = "approved"
-            elif (
-                policy
-                and policy[0] in ("required", "not_required")
-                and current_lifecycle_stage(result) in ("implementing", "done")
-            ):
-                # Implementation started or completed with recognized policy.
-                # Backend validates approval before advancing required plans.
-                # not_required plans are already cleared above, so this catches
-                # required plans that reached implementing/done after approval.
-                state["stage"] = "approved"
-            elif current_lifecycle_stage(result) == "changes_requested":
-                state["stage"] = "changes_requested"
-            else:
-                state["stage"] = "submitted"
-            if state["stage"] != "pending_upload":
-                state.pop("pending_upload_command", None)
-                state.pop("pending_upload_expires_at", None)
-            save_state(state_path, state)
+        if isinstance(result, dict):
+            new_state = session_state_from_get_plan(state, tool_input, result)
+            if new_state is not None:
+                save_state(state_path, new_state)
 
 
 if __name__ == "__main__":
