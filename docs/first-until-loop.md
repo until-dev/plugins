@@ -137,7 +137,8 @@ If the loop does not fit a particular change, tell the agent:
 Until explains that you are giving up Plan review and the Plan check, then
 stands aside. When enforcement is active, it gives you a session-specific
 bypass command that you must run in your own terminal; the agent cannot run it
-for you. Clicking Build, accepting a draft, or saying “looks good” does not
+for you. This includes after Until asks for source-control setup and no Plan
+ID exists. Clicking Build, accepting a draft, or saying “looks good” does not
 bypass the loop.
 
 Next: [Understand Plan checks](plan-checks.md).

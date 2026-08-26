@@ -401,11 +401,17 @@ def main():
             "submitted. Stop before implementation. Present the setup link from the "
             "submit_plan response, wait for your partner to confirm setup, then retry "
             "submission. Plan acceptance or an implementation request does not waive "
-            "this blocker; only the instruction “Don’t use the Until Loop for this.” does."
+            "this blocker. If the partner explicitly says “Don’t use the Until Loop "
+            "for this.”, tell them once what they waive and give them this human-run "
+            f"command: touch '{skip_path}'. Then stop until your partner confirms they "
+            "ran that command. A missing skip file still denies implementation. Do "
+            "not call submit_plan again for this change. Otherwise never surface the "
+            "command. Relay blocks in Until Loop terms only."
         )
         in_flight_user_msg = (
-            "Until still needs repository access before this plan can be submitted — "
-            "implementation stays paused until setup is completed and submission succeeds."
+            "Until still needs repository access before this plan can be submitted. "
+            "Complete setup, then send continue — or say “Don’t use the Until Loop "
+            "for this.”"
         )
     elif pending_upload_expired:
         in_flight_agent_msg = (
@@ -537,10 +543,10 @@ def main():
         allow()
 
     if event == "preToolUse":
-        if build_allowed or skipped:
-            allow()
         tool = payload.get("tool_name") or ""
         if not EDIT_TOOL_PAT.search(tool):
+            if build_allowed or skipped:
+                allow()
             allow()
         tool_input = payload.get("tool_input")
         if isinstance(tool_input, str):
@@ -559,7 +565,9 @@ def main():
             cwd = payload.get("cwd")
             until_target = contained_path(target, UNTIL_ROOT, cwd)
             # File tools may never write into the state dir either — otherwise
-            # the agent could forge a skip token with the Write tool.
+            # the agent could forge a skip token with the Write tool. This
+            # denial stays ahead of the skip-token allow so a waived
+            # conversation still cannot touch ~/.until/state.
             if until_target == UNTIL_ROOT or contained_path(target, STATE_DIR, cwd):
                 deny(
                     "UNTIL GATE: agents may not touch Until session state (that "
@@ -579,6 +587,8 @@ def main():
             # still blocks every workspace edit until policy clearance.
             if not in_flight and is_shape_doc(target, cwd):
                 allow()
+        if build_allowed or skipped:
+            allow()
         if in_flight:
             if not target:
                 allow()  # fail-open when we can't tell what's being edited

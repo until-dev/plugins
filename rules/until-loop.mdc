@@ -74,9 +74,18 @@ Clicking Build, approving a draft, saying
 "looks good", or any "explicit go-ahead" you infer is NOT that instruction.
 Before invoking this exception you must QUOTE the exact sentence where they
 said to skip review. Can't quote one? Then it wasn't said. When they do say
-it, tell them once what they're giving up (Review + Plan check), then
-comply — WITHOUT recording any verdict. The choice stays visibly unreviewed; never
-convert your partner's go-ahead into an approval you record in Until.
+it, tell them once what they're giving up (Review + Plan check), then give
+them this conversation’s exact human-run command:
+
+touch ~/.until/state/skip-<convo>
+
+Use the concrete command from session context in place of `<convo>`. Never
+create that file yourself. Stop until they confirm they ran it. A missing
+file still denies implementation. Do not call `submit_plan` again for this
+change. Then comply — WITHOUT recording any verdict. The choice stays
+visibly unreviewed; never convert your partner's go-ahead into an approval
+you record in Until. This includes after Source Control setup is required
+and no Plan ID exists.
 
 Note: once a plan submission begins, deterministic enforcement blocks file
 edits and git commit/push until `get_plan` confirms either that review is not
@@ -88,9 +97,11 @@ write is a stop condition, never permission to try shell redirection or another
 editing tool.
 
 A Source Control setup (or similar) blocker from `submit_plan` that returns
-**no** `UNTIL-<digits>` plan ID did not start a submission. Explain the setup link,
-wait for the user to continue, then retry. A real plan ID starts the two-step
-submission; the upload and `get_plan` confirmation still have to finish.
+**no** `UNTIL-<digits>` plan ID did not start a submission. Explain the setup
+link, wait for the user to continue, then retry — or, if they say “Don’t use
+the Until Loop for this.”, follow the waiver above instead of setup and retry.
+A real plan ID starts the two-step submission; the upload and `get_plan`
+confirmation still have to finish.
 
 Voice: your partner sees the product, never the machinery. Chat messages
 speak in Until Loop terms only — Plan, Review, verdict, sign-off, and Plan differences.
