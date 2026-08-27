@@ -114,6 +114,32 @@ entries and then run `./hooks/install-user-hooks.sh` from the permanent clone.
 Rerunning the installer while an old `until-commit-gate` entry remains does not
 update it.
 
+### Homebrew Python cannot open the hook file (EPERM)
+
+**Symptom:** Cursor shows `Permission denied` / `Hook blocked` on every tool
+(Read, Shell, Until, Linear). The hook log never shows `commit-gate fired` or
+`track-state fired`. Until MCP discovery may still work.
+
+**Likely cause:** Cursor launched Homebrew `Python.app` against a workspace hook
+file using the old `#!/usr/bin/env python3` shebang. On some macOS setups the
+interpreter cannot `open()` the workspace path (`Operation not permitted` /
+errno 1). Cursor fail-closes when the hook process never starts.
+
+**Try:**
+
+1. Confirm the installed commands are the current [`until-commit-gate`](../hooks/until-commit-gate)
+   and [`until-track-state`](../hooks/until-track-state) from your Until clone
+   (first line should be `#!/bin/sh`, not `#!/usr/bin/env python3`).
+2. Re-run `./hooks/install-user-hooks.sh` from the permanent clone if paths are
+   stale, then reload Cursor.
+3. Inspect `~/.until/hooks.log` for `FAIL-OPEN` lines. When the shell wrapper
+   cannot run Python or Python does not return a valid allow/deny decision,
+   the commit gate allows tools and shows this message on every failed start:
+   “Until commit gate could not start. Tools are unrestricted until python3
+   can run this hook.” That is preferable to a total agent outage.
+4. Settings → Hooks is not the only recovery path; fixing the hook file or
+   `python3` on `PATH` restores enforcement.
+
 ## Expected pauses
 
 These states are deliberate stops in the Until Loop rather than installation

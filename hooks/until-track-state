@@ -1,4 +1,23 @@
-#!/usr/bin/env python3
+#!/bin/sh
+# Cursor/Claude hook entry: /bin/sh opens this file; Python runs via -c so
+# Homebrew Python.app never needs to open a workspace path (EPERM).
+
+payload=$(cat)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+export UNTIL_HOOKS_DIR="$SCRIPT_DIR"
+
+log_hook() {
+  log_path="${HOME}/.until/hooks.log"
+  mkdir -p "${HOME}/.until" 2>/dev/null || true
+  printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u)" "$1" >> "$log_path" 2>/dev/null || true
+}
+
+if ! command -v python3 >/dev/null 2>&1; then
+  log_hook "track-state FAIL-OPEN: python3 missing on PATH"
+  exit 0
+fi
+
+body=$(cat <<'PYTHON_BODY'
 """Until stage tracking — Cursor afterMCPExecution / Claude Code PostToolUse.
 
 Watches real Until MCP traffic (not the model's claims) and records the
@@ -20,7 +39,11 @@ import sys
 import time
 from datetime import datetime, timedelta, timezone
 
-_HOOKS_DIR = os.path.dirname(os.path.abspath(__file__))
+_hooks_dir_env = os.environ.get("UNTIL_HOOKS_DIR")
+if _hooks_dir_env:
+    _HOOKS_DIR = _hooks_dir_env
+else:
+    _HOOKS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _HOOKS_DIR not in sys.path:
     sys.path.insert(0, _HOOKS_DIR)
 from session_stage import session_state_from_get_plan
@@ -330,3 +353,10 @@ if __name__ == "__main__":
     except Exception:
         pass  # fail open: never break the hook chain
     sys.exit(0)
+PYTHON_BODY
+)
+
+if ! printf '%s' "$payload" | python3 -c "$body" 2>/dev/null; then
+  log_hook "track-state FAIL-OPEN: python3 -c failed"
+fi
+exit 0

@@ -1,4 +1,201 @@
-#!/usr/bin/env python3
+#!/bin/sh
+# Cursor/Claude hook entry: /bin/sh opens this file; Python runs via -c so
+# Homebrew Python.app never needs to open a workspace path (EPERM).
+
+payload=$(cat)
+
+GATE_DOWN_MSG='Until commit gate could not start. Tools are unrestricted until python3 can run this hook.'
+
+log_hook() {
+  log_path="${HOME}/.until/hooks.log"
+  mkdir -p "${HOME}/.until" 2>/dev/null || true
+  printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u)" "$1" >> "$log_path" 2>/dev/null || true
+}
+
+is_claude_payload() {
+  printf '%s' "$payload" | tr -d '\n' | grep -q '"hook_event_name"[[:space:]]*:[[:space:]]*"PreToolUse"'
+}
+
+# Validate allow/deny JSON in awk so a second python3 process cannot
+# discard a real policy decision or accept malformed stdout.
+GATE_JSON_AWK=$(cat <<'GATE_JSON_AWK'
+function hexval(h,    n, j, c, v) {
+  n = 0
+  for (j = 1; j <= length(h); j++) {
+    c = tolower(substr(h, j, 1))
+    v = index("0123456789abcdef", c) - 1
+    if (v < 0) return -1
+    n = n * 16 + v
+  }
+  return n
+}
+function skip_ws() {
+  while (i <= n) {
+    c = substr(s, i, 1)
+    if (c != " " && c != "\t" && c != "\n" && c != "\r") break
+    i++
+  }
+}
+function parse_string(    c, hex) {
+  if (substr(s, i, 1) != "\"") return 0
+  i++
+  strval = ""
+  while (i <= n) {
+    c = substr(s, i, 1)
+    if (c == "\"") { i++; return 1 }
+    if (c == "\\") {
+      i++
+      if (i > n) return 0
+      c = substr(s, i, 1)
+      if (c == "\"" || c == "\\" || c == "/") { strval = strval c; i++; continue }
+      if (c == "b" || c == "f" || c == "n" || c == "r" || c == "t") { strval = strval c; i++; continue }
+      if (c == "u") {
+        i++
+        hex = substr(s, i, 4)
+        if (hex !~ /^[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]$/) return 0
+        code = hexval(hex)
+        i += 4
+        if (code < 128) strval = strval sprintf("%c", code)
+        else if (code < 2048) strval = strval sprintf("%c%c", 192 + int(code / 64), 128 + (code % 64))
+        else strval = strval sprintf("%c%c%c", 224 + int(code / 4096), 128 + (int(code / 64) % 64), 128 + (code % 64))
+        continue
+      }
+      return 0
+    }
+    if (c in ctrl) return 0
+    strval = strval c
+    i++
+  }
+  return 0
+}
+function parse_number() {
+  rest = substr(s, i)
+  if (match(rest, /^-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?/)) {
+    i += RLENGTH
+    return 1
+  }
+  return 0
+}
+function parse_literal(lit) {
+  if (substr(s, i, length(lit)) == lit) { i += length(lit); return 1 }
+  return 0
+}
+function parse_array() {
+  if (substr(s, i, 1) != "[") return 0
+  i++
+  skip_ws()
+  if (substr(s, i, 1) == "]") { i++; return 1 }
+  while (1) {
+    if (!parse_value()) return 0
+    skip_ws()
+    c = substr(s, i, 1)
+    if (c == "]") { i++; return 1 }
+    if (c != ",") return 0
+    i++
+  }
+}
+function parse_object(store,    key) {
+  if (substr(s, i, 1) != "{") return 0
+  i++
+  skip_ws()
+  if (substr(s, i, 1) == "}") { i++; return 1 }
+  while (1) {
+    skip_ws()
+    if (!parse_string()) return 0
+    key = strval
+    if (store == "top") top[key] = 1
+    if (store == "hso") hso[key] = 1
+    skip_ws()
+    if (substr(s, i, 1) != ":") return 0
+    i++
+    skip_ws()
+    if (store == "top" && key == "hookSpecificOutput" && substr(s, i, 1) == "{") {
+      if (!parse_object("hso")) return 0
+    } else if ((store == "top" && (key == "permission" || key == "agent_message" || key == "user_message" || key == "systemMessage")) || (store == "hso" && (key == "hookEventName" || key == "permissionDecision" || key == "permissionDecisionReason"))) {
+      if (substr(s, i, 1) != "\"") return 0
+      if (!parse_string()) return 0
+      if (store == "top") topv[key] = strval
+      if (store == "hso") hsov[key] = strval
+    } else {
+      if (!parse_value()) return 0
+    }
+    skip_ws()
+    c = substr(s, i, 1)
+    if (c == "}") { i++; return 1 }
+    if (c != ",") return 0
+    i++
+  }
+}
+function parse_value() {
+  skip_ws()
+  c = substr(s, i, 1)
+  if (c == "{") return parse_object("")
+  if (c == "[") return parse_array()
+  if (c == "\"") return parse_string()
+  if (c == "-" || (c >= "0" && c <= "9")) return parse_number()
+  if (c == "t") return parse_literal("true")
+  if (c == "f") return parse_literal("false")
+  if (c == "n") return parse_literal("null")
+  return 0
+}
+BEGIN {
+  ORS = ""
+  nctrl = 0
+  for (nctrl = 0; nctrl < 32; nctrl++) ctrl[sprintf("%c", nctrl)] = 1
+}
+{
+  if (NR > 1) s = s "\n"
+  s = s $0
+}
+END {
+  n = length(s)
+  i = 1
+  skip_ws()
+  if (substr(s, i, 1) != "{") exit 1
+  if (!parse_object("top")) exit 1
+  skip_ws()
+  if (i <= n) exit 1
+  if (expected == "claude") {
+    if (!("hookSpecificOutput" in top)) exit 1
+    if ("permission" in top) exit 1
+    if (hsov["hookEventName"] != "PreToolUse") exit 1
+    if (hsov["permissionDecision"] != "allow" && hsov["permissionDecision"] != "deny") exit 1
+    exit 0
+  }
+  if (!("permission" in top)) exit 1
+  if ("hookSpecificOutput" in top) exit 1
+  if (topv["permission"] != "allow" && topv["permission"] != "deny") exit 1
+  exit 0
+}
+GATE_JSON_AWK
+)
+
+valid_gate_output() {
+  out="$1"
+  [ -n "$out" ] || return 1
+  if is_claude_payload; then
+    expected=claude
+  else
+    expected=cursor
+  fi
+  printf '%s' "$out" | awk -v expected="$expected" "$GATE_JSON_AWK"
+}
+
+emit_fail_open() {
+  if is_claude_payload; then
+    printf '%s\n' "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\",\"permissionDecisionReason\":\"$GATE_DOWN_MSG\"},\"systemMessage\":\"$GATE_DOWN_MSG\"}"
+  else
+    printf '%s\n' "{\"permission\":\"allow\",\"agent_message\":\"$GATE_DOWN_MSG\",\"user_message\":\"$GATE_DOWN_MSG\"}"
+  fi
+}
+
+if ! command -v python3 >/dev/null 2>&1; then
+  log_hook "commit-gate FAIL-OPEN: python3 missing on PATH"
+  emit_fail_open
+  exit 0
+fi
+
+body=$(cat <<'PYTHON_BODY'
 """The Until hard gate — Cursor beforeShellExecution/preToolUse and
 Claude Code PreToolUse (Bash routes to the shell path, edit tools to the
 file path; output format adapts per harness).
@@ -264,7 +461,7 @@ def shell_is_read_only(cmd):
     """Fail closed: allow only recognized inspection commands."""
     if not cmd.strip():
         return True
-    if "`" in cmd or "$(" in cmd:
+    if chr(96) in cmd or '$(' in cmd:
         return False
     without_dev_null = re.sub(r"\d*>\s*/dev/null", "", cmd)
     if ">" in without_dev_null:
@@ -612,3 +809,16 @@ if __name__ == "__main__":
         # Route through allow() so Claude Code gets hookSpecificOutput shape
         # when CLAUDE_OUTPUT was already set for this PreToolUse invocation.
         allow()
+PYTHON_BODY
+)
+
+output=$(printf '%s' "$payload" | python3 -c "$body" 2>/dev/null)
+status=$?
+if [ "$status" -ne 0 ] || ! valid_gate_output "$output"; then
+  log_hook "commit-gate FAIL-OPEN: python3 -c failed or invalid stdout"
+  emit_fail_open
+  exit 0
+fi
+
+printf '%s\n' "$output"
+exit 0
