@@ -3,6 +3,9 @@
   "version": "0.2.7",
   "description": "Spend your time on the engineering trade-offs that matter. Let the Until Loop make sure your agents deliver what you want, how you want it.",
   "type": "module",
+  "exports": {
+    "./server": "./.opencode/server.js"
+  },
   "license": "MIT",
   "author": {
     "name": "Overmind",
@@ -13,21 +16,30 @@
     "type": "git",
     "url": "git+https://github.com/until-dev/plugins.git"
   },
+  "scripts": {
+    "validate:package": "node scripts/validate-package.mjs"
+  },
   "keywords": [
     "pi-package",
     "pi",
+    "opencode",
     "coding-agent",
     "until",
     "plan-first",
     "peer-review"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=20",
+    "opencode": ">=1.18.23"
   },
   "files": [
+    ".opencode",
     ".pi",
     "assets",
     "docs",
+    "hooks/session_stage.py",
+    "hooks/until-commit-gate",
+    "hooks/until-track-state",
     "skills",
     "LICENSE",
     "README.md",

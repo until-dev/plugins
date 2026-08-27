@@ -6,9 +6,9 @@ before installation.
 
 ## Requirements
 
-- Claude Code, Codex, Cursor or Pi
+- Claude Code, Codex, OpenCode, Cursor or Pi
 - macOS or Linux
-- `python3` on `PATH` for the Claude Code and Cursor enforcement hooks
+- `python3` on `PATH` for the Claude Code, OpenCode and Cursor enforcement hooks
 
 Windows is not supported yet. The guidance may load, but the hooks that enforce
 the Until Rule are not reliably launched or validated there.
@@ -41,6 +41,37 @@ codex plugin add until@until
 Restart Codex and start a new task. The plugin registers Until's MCP server
 automatically.
 
+## OpenCode
+
+OpenCode 1.18.23 or later is required.
+
+Install Until in OpenCode's global configuration:
+
+```bash
+opencode plugin @until-dev/plugins --global
+```
+
+Restart OpenCode and authenticate the Until MCP server:
+
+```bash
+opencode mcp auth until
+```
+
+Confirm that OpenCode can see the connection:
+
+```bash
+opencode mcp list
+```
+
+Start a fresh session. Until's initial guidance, on-demand skills and MCP tools
+are supplied by the plugin; no repository-local files are required.
+
+OpenCode enforcement covers the built-in `write`, `edit`, `apply_patch` and
+`bash` tools. It does not claim to intercept tools supplied by unrelated
+OpenCode plugins. The enforcement process requires `python3` and fails open if
+the shared hook cannot run. This guard supports the Until workflow but is not a
+general-purpose security sandbox.
+
 ## Cursor
 
 Clone the plugin into a permanent location:
@@ -71,9 +102,9 @@ repository, the hooks remain inactive until Plan submission or source-control
 setup begins. A repository containing `.until-method` is default-closed, so the
 hooks enforce the Until Rule before a Plan exists.
 
-Claude Code and Cursor expose different hook events, so their exact enforcement
-coverage differs. The hooks guard supported coding actions; they are not a
-general-purpose security sandbox.
+Claude Code, OpenCode and Cursor expose different plugin and hook interfaces,
+so their exact enforcement coverage differs. The hooks guard supported coding
+actions; they are not a general-purpose security sandbox.
 
 ## Pi
 
@@ -108,7 +139,8 @@ Complete the browser flow, then run `/mcp` to confirm that the Until server is
 available. Start a fresh Pi session so the Until startup guidance is loaded.
 
 Pi support includes the Until skills, startup guidance and MCP tools. It does
-not include the deterministic enforcement hooks used by Cursor and Claude Code.
+not include the deterministic enforcement hooks used by Claude Code, Cursor
+and OpenCode.
 
 ## Source control
 
@@ -138,6 +170,12 @@ If either stop is missing, see [Troubleshooting](troubleshooting.md).
 Claude Code updates Until through its plugin manager.
 
 Update Until through Codex's plugin manager, then restart Codex.
+
+Refresh Until in OpenCode and restart it:
+
+```bash
+opencode plugin @until-dev/plugins --global --force
+```
 
 Refresh the installed Pi package with:
 
@@ -169,6 +207,9 @@ In Codex, remove Until and its marketplace:
 codex plugin remove until@until
 codex plugin marketplace remove until
 ```
+
+In OpenCode, remove `@until-dev/plugins` from the `plugin` array in
+`~/.config/opencode/opencode.json`, then restart OpenCode.
 
 In Cursor, remove the local plugin or symlink. Then remove the Until entries
 from `~/.cursor/hooks.json` if you installed them there.

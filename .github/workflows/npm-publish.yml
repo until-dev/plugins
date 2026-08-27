@@ -40,8 +40,11 @@ jobs:
         run: npm install -g npm@11.19.0
 
       - name: Publish catalog and install-only npm names
+        env:
+          UNTIL_PUBLIC_PACKAGE: '1'
         run: |
           set -euo pipefail
+          npm run validate:package
           npm publish --access public
           node -e '
             const fs = require("fs");
@@ -50,4 +53,5 @@ jobs:
             pkg.keywords = (pkg.keywords || []).filter((k) => k !== "pi-package");
             fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
           '
+          npm run validate:package
           npm publish --access public

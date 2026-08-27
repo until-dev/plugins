@@ -6,7 +6,7 @@ Until moves the important decisions into the Plan before a coding agent writes a
 
 For individual developers and teams whose agents can produce code faster than they can confidently review it.
 
-This plugin connects Cursor, Claude Code, Codex and Pi to Until, guiding the agent through the Until Loop.
+This plugin connects Cursor, Claude Code, Codex, OpenCode and Pi to Until, guiding the agent through the Until Loop.
 
 The open-source plugin runs alongside your coding agent. The hosted Until workspace stores Plans and, once you connect source control, links them to pull requests and runs Plan checks.
 
@@ -22,7 +22,7 @@ claude
 
 Restart the session, run `/mcp` to complete authentication, then start a fresh conversation. Until will guide you through creating a workspace. You can connect source control later, when you submit your first Plan for repository-backed work.
 
-Installation instructions for Codex, Cursor and Pi are [below](#install).
+Installation instructions for Codex, OpenCode, Cursor and Pi are [below](#install).
 
 ## Documentation
 
@@ -76,9 +76,9 @@ They are written in Markdown and kept in git, so you can inspect and change them
 
 ### Requirements
 
-- Cursor, Claude Code, Codex or Pi
+- Cursor, Claude Code, Codex, OpenCode or Pi
 - macOS or Linux
-- `python3` on `PATH` for the Claude Code and Cursor enforcement hooks
+- `python3` on `PATH` for the Claude Code, Cursor and OpenCode enforcement hooks
 
 Windows is not supported yet. The skills that teach the Until Loop may load, but the hooks that track Plan state and enforce the Until Rule are not reliably launched or validated there. Nothing on Windows will stop an agent from writing code without a Plan.
 
@@ -96,6 +96,30 @@ codex plugin add until@until
 ```
 
 Restart Codex and start a new task. The plugin registers Until's MCP server automatically.
+
+### OpenCode
+
+OpenCode 1.18.23 or later is required.
+
+Install Until as a global OpenCode plugin:
+
+```bash
+opencode plugin @until-dev/plugins --global
+```
+
+Restart OpenCode, then authenticate the Until MCP server:
+
+```bash
+opencode mcp auth until
+```
+
+Start a fresh session. The plugin supplies Until's workflow, skills and MCP
+configuration without adding files to each repository.
+
+OpenCode enforcement covers its built-in `write`, `edit`, `apply_patch` and
+`bash` tools. Tools added by other OpenCode plugins are outside this initial
+support boundary. The enforcement process fails open if `python3` cannot run;
+Until is a workflow guard, not a security sandbox.
 
 ### Cursor
 
@@ -148,19 +172,26 @@ Then start a fresh session. Until's skills and startup guidance should be
 available, and `/mcp` should show the Until server.
 
 This first Pi release supports the Until workflow and MCP tools. Pi does not
-load the deterministic Cursor and Claude Code enforcement hooks.
+load the deterministic enforcement hooks used by Claude Code, Cursor and
+OpenCode.
 
 ### Verify the installation
 
 Start a fresh conversation and ask your agent to implement a small change.
 
-Until should begin by helping you shape the change and create a Plan before writing code. After the Plan is cleared, it should stop again until you explicitly start implementation. If either stop is missing, follow the [enforcement troubleshooting steps](docs/troubleshooting.md#the-agent-starts-implementing-before-there-is-a-plan). In an ordinary repository, pre-Plan behaviour comes from the plugin's session guidance; user-level hooks begin enforcement when submission or source-control setup starts. A `.until-method` repository is enforced before submission.
+Until should begin by helping you shape the change and create a Plan before writing code. After the Plan is cleared, it should stop again until you explicitly start implementation. If either stop is missing, follow the [enforcement troubleshooting steps](docs/troubleshooting.md#the-agent-starts-implementing-before-there-is-a-plan). In an ordinary repository, pre-Plan behaviour comes from the plugin's session guidance; deterministic hooks begin enforcement when submission or source-control setup starts. A `.until-method` repository is enforced before submission.
 
 ### Updating
 
 Claude Code updates through the plugin manager.
 
 Update Until through Codex's plugin manager, then restart Codex.
+
+Refresh the global OpenCode plugin and restart OpenCode:
+
+```bash
+opencode plugin @until-dev/plugins --global --force
+```
 
 On Cursor, update the cloned repository and reload the window:
 
@@ -190,6 +221,9 @@ On Codex, remove the plugin and marketplace:
 codex plugin remove until@until
 codex plugin marketplace remove until
 ```
+
+On OpenCode, remove `@until-dev/plugins` from the `plugin` array in
+`~/.config/opencode/opencode.json`, then restart OpenCode.
 
 On Cursor, delete the plugin symlink and remove the Until entries from your user-level `hooks.json`.
 

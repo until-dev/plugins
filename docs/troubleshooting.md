@@ -23,8 +23,8 @@ directory, or the editor was not restarted.
    [Set up Until](setup.md) for platform-specific steps.
 2. For Cursor, confirm the local plugin or symlink still points to the cloned
    repository.
-3. Restart Claude Code, reload Cursor with **Developer: Reload Window**, or
-   start a fresh Pi session.
+3. Restart Claude Code or OpenCode, reload Cursor with **Developer: Reload
+   Window**, or start a fresh Pi session.
 4. Start a new conversation and ask the agent to implement a small change.
    Until should begin by shaping the change and drafting a Plan before writing
    code.
@@ -39,14 +39,16 @@ before the workspace was created or selected.
 **Try:**
 
 1. In Claude Code, run `/mcp` and complete authentication.
-2. In Cursor, open settings, find MCP, and confirm the Until server is
+2. In OpenCode, run `opencode mcp list`. If `until` needs authentication, run
+   `opencode mcp auth until`.
+3. In Cursor, open settings, find MCP, and confirm the Until server is
    authenticated.
-3. In Pi, run `/mcp` to confirm the Until server is listed, then run
+4. In Pi, run `/mcp` to confirm the Until server is listed, then run
    `/mcp-auth until` and complete the browser flow.
-4. Return to the same conversation after the browser flow.
-5. If Until presents a setup link, use that exact link rather than guessing a
+5. Return to the same conversation after the browser flow.
+6. If Until presents a setup link, use that exact link rather than guessing a
    workspace URL.
-6. Start a fresh conversation after authentication if the existing session
+7. Start a fresh conversation after authentication if the existing session
    still cannot see the workspace.
 
 Do not include OAuth tokens or other credentials in a support issue.
@@ -55,9 +57,9 @@ Do not include OAuth tokens or other credentials in a support issue.
 
 ### The agent starts implementing before there is a Plan
 
-In Claude Code and Cursor, the deterministic enforcement hooks are inactive in
+In Claude Code, Cursor and OpenCode, deterministic enforcement is inactive in
 an ordinary repository before Plan submission begins. Pre-Plan behaviour
-depends on the session-start guidance loading correctly.
+depends on the initial Until guidance loading correctly.
 
 **Try:**
 
@@ -68,10 +70,14 @@ depends on the session-start guidance loading correctly.
 3. If the repository contains a `.until-method` marker, continue with
    [Until enforcement hooks do not run](#until-enforcement-hooks-do-not-run).
 
-In Claude Code and Cursor, a repository with `.until-method` is default-closed:
-its enforcement hooks block implementation changes before a Plan has been
-cleared. Repositories without that marker are protected after Plan submission
-or source-control setup begins, but not before.
+In Claude Code, Cursor and OpenCode, a repository with `.until-method` is
+default-closed: supported implementation changes are blocked before a Plan has
+been cleared. Repositories without that marker are protected after Plan
+submission or source-control setup begins, but not before.
+
+OpenCode enforcement covers its built-in `write`, `edit`, `apply_patch` and
+`bash` tools. Tools installed by other OpenCode plugins are outside this
+support boundary.
 
 Pi loads Until's startup guidance and MCP tools, but it does not load these
 deterministic enforcement hooks. If a Pi agent ignores the guidance, no hook
@@ -82,28 +88,31 @@ supported environment for the current hooks.
 
 ### Until enforcement hooks do not run
 
-**Likely cause:** the Cursor user hooks are missing or incomplete, `python3` is
-not available, or `~/.cursor/hooks.json` points to a clone that was moved or
-deleted.
+**Likely cause:** `python3` is not available, the OpenCode package is stale, the
+Cursor user hooks are missing or incomplete, or `~/.cursor/hooks.json` points
+to a clone that was moved or deleted.
 
 **Try:**
 
 1. Confirm `python3 --version` succeeds.
-2. Open `~/.cursor/hooks.json` and confirm it is valid JSON:
+2. For OpenCode, refresh the package with `opencode plugin
+   @until-dev/plugins --global --force`, restart OpenCode, and inspect
+   `~/.until/hooks.log` after a supported tool call.
+3. For Cursor, open `~/.cursor/hooks.json` and confirm it is valid JSON:
 
    ```bash
    python3 -m json.tool ~/.cursor/hooks.json
    ```
 
-3. Confirm all three Until entries are present:
+4. Confirm all three Cursor Until entries are present:
    - `afterMCPExecution` runs `until-track-state`;
    - `beforeShellExecution` runs `until-commit-gate`;
    - `preToolUse` runs `until-commit-gate`.
-4. Confirm each command points to an existing executable in the current,
+5. Confirm each Cursor command points to an existing executable in the current,
    permanent Until clone.
-5. Inspect `~/.until/hooks.log` for recent `track-state` and `commit-gate`
+6. Inspect `~/.until/hooks.log` for recent `track-state` and `commit-gate`
    activity.
-6. Reload Cursor after changing the hook configuration.
+7. Reload Cursor after changing the hook configuration.
 
 The installer reports that hooks are already present when it finds an existing
 `until-commit-gate` entry. That message does not prove the installation is
@@ -341,9 +350,12 @@ tool is unavailable. See [Custom Loop integrations](custom-loops.md#integrations
 1. Confirm you updated the same clone the editor loads.
 2. Reload the editor.
 3. Start a fresh conversation.
-4. For Cursor, verify the existing user-hook entries and paths using
+4. For OpenCode, confirm `@until-dev/plugins` remains in the global `plugin`
+   array and refresh it with `opencode plugin @until-dev/plugins --global
+   --force`.
+5. For Cursor, verify the existing user-hook entries and paths using
    [Until enforcement hooks do not run](#until-enforcement-hooks-do-not-run).
-5. For Pi, run `pi list` to confirm the installed source. The Git installation
+6. For Pi, run `pi list` to confirm the installed source. The Git installation
    is pinned to an immutable tag, so `pi update --extensions` only refreshes
    that release. To move to a later release, remove the tagged source and
    install the newer tagged source as described in [Set up Until](setup.md).
@@ -355,7 +367,7 @@ is unnecessary and does not rewrite existing entries.
 
 Include:
 
-- Claude Code, Codex, Cursor or Pi and its version;
+- Claude Code, Codex, Cursor, OpenCode or Pi and its version;
 - operating system;
 - Until plugin version or commit;
 - the step and documentation section followed;
