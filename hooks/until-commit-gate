@@ -252,6 +252,7 @@ EDIT_TOOL_PAT = re.compile(
 )
 APPLY_PATCH_PAT = re.compile(r"apply_?patch", re.IGNORECASE)
 SHELL_TOOL_NAMES = frozenset({"bash", "execute"})
+SPAWN_TOOL_NAMES = frozenset({"task"})
 PATH_KEYS = ("file_path", "path", "target_file", "absolute_path", "filePath", "target_notebook")
 SHAPE_DOC_DIRS = {"plans", "design", "specs"}
 
@@ -536,7 +537,7 @@ def is_shape_doc(target, cwd=None):
 
 
 def classify_tool(event, tool_name):
-    """Map host tool events to shell, file-write, or other (read-only / unknown)."""
+    """Map host tool events to shell, file-write, spawn, or other."""
     if event == "beforeShellExecution":
         return "shell"
     if event in ("preToolUse", "PreToolUse"):
@@ -544,6 +545,8 @@ def classify_tool(event, tool_name):
             name = (tool_name or "").lower()
             if name in SHELL_TOOL_NAMES:
                 return "shell"
+            if name in SPAWN_TOOL_NAMES:
+                return "spawn"
         if EDIT_TOOL_PAT.search(tool_name or ""):
             return "file-write"
         return "other"
@@ -560,7 +563,7 @@ def main():
 
     # Cursor sends conversation_id + camelCase events; Claude Code and Factory
     # Droid send session_id + PreToolUse. Classify each host's tool names onto
-    # the two enforcement paths (shell vs file-write); other tools allow early.
+    # shell, file-write, or spawn; other tools allow early.
     global CLAUDE_OUTPUT
     convo = payload.get("conversation_id") or payload.get("session_id") or "unknown"
     event = payload.get("hook_event_name") or ""
@@ -573,6 +576,8 @@ def main():
             ti = payload.get("tool_input")
             if isinstance(ti, dict):
                 payload = dict(payload, command=ti.get("command", ""))
+        elif kind == "spawn":
+            event = "spawn"
         elif kind == "file-write":
             event = "preToolUse"
         else:
@@ -757,6 +762,16 @@ def main():
                   "write path, shell redirection, or another tool.",
                 default_closed_user_msg,
             )
+        allow()
+
+    if event == "spawn":
+        if build_allowed or skipped:
+            allow()
+        marked_repo = find_until_repo(payload.get("cwd") or "")
+        if in_flight:
+            deny(in_flight_agent_msg, in_flight_user_msg)
+        if marked_repo:
+            deny(default_closed_agent_msg, default_closed_user_msg)
         allow()
 
     if event == "preToolUse":

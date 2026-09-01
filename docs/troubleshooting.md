@@ -157,8 +157,8 @@ errno 1). Cursor fail-closes when the hook process never starts.
 files or run shell commands while a Plan is in flight.
 
 **Likely cause:** the plugin is not installed with user scope, Droid was not
-restarted after installation, `python3` is missing from `PATH`, or the work
-ran in a Task sub-droid.
+restarted after installation, `python3` is missing from `PATH`, or enforcement
+was bypassed because the hook failed open.
 
 **Try:**
 
@@ -170,15 +170,16 @@ ran in a Task sub-droid.
 
 2. Restart Droid and start a fresh session.
 3. Confirm `python3` is available where Droid launches hooks. If it is not,
-   the commit gate fails open and allows the tool rather than blocking the
-   session.
+   the commit gate fails open and allows the tool — including `Task` — rather
+   than blocking the session.
 4. Inspect `~/.until/hooks.log` for recent `commit-gate fired` lines after a
-   supported tool call on the **main** Droid (`Execute`, `Create`, `Edit`,
-   `ApplyPatch`, or their Claude Code equivalents when testing a shared clone).
+   supported tool call on the **main** Droid session (`Execute`, `Create`,
+   `Edit`, `ApplyPatch`, `Task`, or their Claude Code equivalents when testing
+   a shared clone).
 
-Enforcement covers the main Droid session. Task sub-droids launched with
-Droid's `Task` tool may run without those hooks and can edit or run shell
-commands while a Plan is in flight.
+While Until is enforcing, the main Droid session denies `Task` spawns as well
+as shell and file tools. An idle session in an unmarked repository may still
+use `Task`.
 
 Factory Droid on Windows is not supported for enforcement hooks.
 

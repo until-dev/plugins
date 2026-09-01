@@ -107,8 +107,10 @@ droid plugin install until@until --scope user
 ```
 
 Restart Droid and start a fresh session. Until's skills, MCP server and enforcement
-hooks load from the same plugin root as Claude Code. Droid uses that Claude-compatible
-layout; this release does not ship a native `.factory-plugin/` manifest.
+hooks load from the same plugin root as Claude Code. Droid loads the wrapped
+Claude-compatible `hooks.json` from that root; a native `.factory-plugin/`
+manifest also ships beside `.claude-plugin/` and points at the same `./` source.
+When you change plugin metadata, update both manifest directories together.
 
 Factory Droid names shell and file tools differently from Claude Code. The
 main Droid session is enforced on `Execute` (shell) and `Create`, `Edit`, and
@@ -116,11 +118,12 @@ main Droid session is enforced on `Execute` (shell) and `Create`, `Edit`, and
 same jobs. The shared commit gate maps each host onto the same enforcement
 paths.
 
-Task sub-droids launched with Droid's `Task` tool may run without the main
-session's hooks, so they can be ungated. There is no extra hook installer.
+While Until is enforcing (a Plan is in flight or the cwd is a `.until-method`
+repository), the main session also denies `Task` spawns on Claude Code and
+Factory Droid. Idle sessions in unmarked repositories may still use `Task`.
 
 If `python3` cannot run the hook, enforcement fails open and the tool is
-allowed. Until is a workflow guard, not a security sandbox.
+allowed — including `Task`. Until is a workflow guard, not a security sandbox.
 
 Windows is not supported for Factory Droid enforcement hooks.
 
