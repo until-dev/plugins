@@ -21,7 +21,7 @@ important decisions are still cheap to change.
 
 If the repository contains `.until-method`, the enforcement hooks also block
 implementation changes before a Plan is cleared. See
-[Set up Until](setup.md#cursor) for the hook setup.
+[Set up Until](setup.md) for installation and hook setup.
 
 For the example, those decisions might include:
 

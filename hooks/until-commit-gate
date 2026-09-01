@@ -247,9 +247,11 @@ STATE_DIR = os.path.realpath(os.path.join(UNTIL_ROOT, "state"))
 PLAN_ID_RE = re.compile(r"^UNTIL-[0-9]+$")
 
 EDIT_TOOL_PAT = re.compile(
-    r"write|edit|str_?replace|multi_?edit|apply_?patch|search_replace|delete|notebook",
+    r"write|edit|str_?replace|multi_?edit|apply_?patch|search_replace|delete|notebook|create",
     re.IGNORECASE,
 )
+APPLY_PATCH_PAT = re.compile(r"apply_?patch", re.IGNORECASE)
+SHELL_TOOL_NAMES = frozenset({"bash", "execute"})
 PATH_KEYS = ("file_path", "path", "target_file", "absolute_path", "filePath", "target_notebook")
 SHAPE_DOC_DIRS = {"plans", "design", "specs"}
 
@@ -533,6 +535,21 @@ def is_shape_doc(target, cwd=None):
     return os.path.splitext(parts[-1])[1].lower() in {".md", ".mdx"}
 
 
+def classify_tool(event, tool_name):
+    """Map host tool events to shell, file-write, or other (read-only / unknown)."""
+    if event == "beforeShellExecution":
+        return "shell"
+    if event in ("preToolUse", "PreToolUse"):
+        if event == "PreToolUse":
+            name = (tool_name or "").lower()
+            if name in SHELL_TOOL_NAMES:
+                return "shell"
+        if EDIT_TOOL_PAT.search(tool_name or ""):
+            return "file-write"
+        return "other"
+    return "other"
+
+
 def main():
     try:
         payload = json.loads(sys.stdin.read() or "{}")
@@ -541,22 +558,25 @@ def main():
     if not payload:
         allow()
 
-    # Cursor sends conversation_id + camelCase events; Claude Code sends
-    # session_id + PreToolUse. Normalize Claude's single event onto the two
-    # Cursor-shaped paths (Bash -> shell, everything else -> file tools).
+    # Cursor sends conversation_id + camelCase events; Claude Code and Factory
+    # Droid send session_id + PreToolUse. Classify each host's tool names onto
+    # the two enforcement paths (shell vs file-write); other tools allow early.
     global CLAUDE_OUTPUT
     convo = payload.get("conversation_id") or payload.get("session_id") or "unknown"
     event = payload.get("hook_event_name") or ""
     if event == "PreToolUse":
         CLAUDE_OUTPUT = True
         tool_name = payload.get("tool_name") or ""
-        if tool_name == "Bash":
+        kind = classify_tool(event, tool_name)
+        if kind == "shell":
             event = "beforeShellExecution"
             ti = payload.get("tool_input")
             if isinstance(ti, dict):
                 payload = dict(payload, command=ti.get("command", ""))
-        else:
+        elif kind == "file-write":
             event = "preToolUse"
+        else:
+            allow()
     state_path = os.path.join(STATE_DIR, f"session-{convo}.json")
     skip_path = os.path.join(STATE_DIR, f"skip-{convo}")
 
@@ -788,6 +808,8 @@ def main():
             allow()
         if in_flight:
             if not target:
+                if APPLY_PATCH_PAT.search(tool):
+                    deny(in_flight_agent_msg, in_flight_user_msg)
                 allow()  # fail-open when we can't tell what's being edited
             deny(in_flight_agent_msg, in_flight_user_msg)
         # Default-closed check needs a resolvable target inside a marked repo.

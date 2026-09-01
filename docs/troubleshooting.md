@@ -24,7 +24,7 @@ directory, or the editor was not restarted.
 2. For Cursor, confirm the local plugin or symlink still points to the cloned
    repository.
 3. Restart Claude Code or OpenCode, reload Cursor with **Developer: Reload
-   Window**, or start a fresh Pi session.
+   Window**, restart Factory Droid, or start a fresh Pi session.
 4. Start a new conversation and ask the agent to implement a small change.
    Until should begin by shaping the change and drafting a Plan before writing
    code.
@@ -43,12 +43,14 @@ before the workspace was created or selected.
    `opencode mcp auth until`.
 3. In Cursor, open settings, find MCP, and confirm the Until server is
    authenticated.
-4. In Pi, run `/mcp` to confirm the Until server is listed, then run
+4. In Factory Droid, complete MCP authentication when Until prompts during a
+   fresh session.
+5. In Pi, run `/mcp` to confirm the Until server is listed, then run
    `/mcp-auth until` and complete the browser flow.
-5. Return to the same conversation after the browser flow.
-6. If Until presents a setup link, use that exact link rather than guessing a
+6. Return to the same conversation after the browser flow.
+7. If Until presents a setup link, use that exact link rather than guessing a
    workspace URL.
-7. Start a fresh conversation after authentication if the existing session
+8. Start a fresh conversation after authentication if the existing session
    still cannot see the workspace.
 
 Do not include OAuth tokens or other credentials in a support issue.
@@ -57,7 +59,7 @@ Do not include OAuth tokens or other credentials in a support issue.
 
 ### The agent starts implementing before there is a Plan
 
-In Claude Code, Cursor and OpenCode, deterministic enforcement is inactive in
+In Claude Code, Cursor, Factory Droid and OpenCode, deterministic enforcement is inactive in
 an ordinary repository before Plan submission begins. Pre-Plan behaviour
 depends on the initial Until guidance loading correctly.
 
@@ -70,7 +72,7 @@ depends on the initial Until guidance loading correctly.
 3. If the repository contains a `.until-method` marker, continue with
    [Until enforcement hooks do not run](#until-enforcement-hooks-do-not-run).
 
-In Claude Code, Cursor and OpenCode, a repository with `.until-method` is
+In Claude Code, Cursor, Factory Droid and OpenCode, a repository with `.until-method` is
 default-closed: supported implementation changes are blocked before a Plan has
 been cleared. Repositories without that marker are protected after Plan
 submission or source-control setup begins, but not before.
@@ -148,6 +150,37 @@ errno 1). Cursor fail-closes when the hook process never starts.
    can run this hook.” That is preferable to a total agent outage.
 4. Settings → Hooks is not the only recovery path; fixing the hook file or
    `python3` on `PATH` restores enforcement.
+
+### Factory Droid enforcement hooks do not run
+
+**Symptom:** Until skills and MCP tools load, but the agent can edit product
+files or run shell commands while a Plan is in flight.
+
+**Likely cause:** the plugin is not installed with user scope, Droid was not
+restarted after installation, `python3` is missing from `PATH`, or the work
+ran in a Task sub-droid.
+
+**Try:**
+
+1. Confirm installation:
+
+   ```bash
+   droid plugin install until@until --scope user
+   ```
+
+2. Restart Droid and start a fresh session.
+3. Confirm `python3` is available where Droid launches hooks. If it is not,
+   the commit gate fails open and allows the tool rather than blocking the
+   session.
+4. Inspect `~/.until/hooks.log` for recent `commit-gate fired` lines after a
+   supported tool call on the **main** Droid (`Execute`, `Create`, `Edit`,
+   `ApplyPatch`, or their Claude Code equivalents when testing a shared clone).
+
+Enforcement covers the main Droid session. Task sub-droids launched with
+Droid's `Task` tool may run without those hooks and can edit or run shell
+commands while a Plan is in flight.
+
+Factory Droid on Windows is not supported for enforcement hooks.
 
 ## Expected pauses
 
@@ -353,9 +386,11 @@ tool is unavailable. See [Custom Loop integrations](custom-loops.md#integrations
 4. For OpenCode, confirm `@until-dev/plugins` remains in the global `plugin`
    array and refresh it with `opencode plugin @until-dev/plugins --global
    --force`.
-5. For Cursor, verify the existing user-hook entries and paths using
+5. For Factory Droid, confirm the plugin is still installed with user scope,
+   then restart Droid.
+6. For Cursor, verify the existing user-hook entries and paths using
    [Until enforcement hooks do not run](#until-enforcement-hooks-do-not-run).
-6. For Pi, run `pi list` to confirm the installed source. The Git installation
+7. For Pi, run `pi list` to confirm the installed source. The Git installation
    is pinned to an immutable tag, so `pi update --extensions` only refreshes
    that release. To move to a later release, remove the tagged source and
    install the newer tagged source as described in [Set up Until](setup.md).
@@ -367,7 +402,7 @@ is unnecessary and does not rewrite existing entries.
 
 Include:
 
-- Claude Code, Codex, Cursor, OpenCode or Pi and its version;
+- Claude Code, Codex, Factory Droid, Cursor, OpenCode or Pi and its version;
 - operating system;
 - Until plugin version or commit;
 - the step and documentation section followed;

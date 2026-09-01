@@ -6,9 +6,9 @@ before installation.
 
 ## Requirements
 
-- Claude Code, Codex, OpenCode, Cursor or Pi
+- Claude Code, Codex, Factory Droid, OpenCode, Cursor or Pi
 - macOS or Linux
-- `python3` on `PATH` for the Claude Code, OpenCode and Cursor enforcement hooks
+- `python3` on `PATH` for the Claude Code, Factory Droid, OpenCode and Cursor enforcement hooks
 
 Windows is not supported yet. The guidance may load, but the hooks that enforce
 the Until Rule are not reliably launched or validated there.
@@ -40,6 +40,42 @@ codex plugin add until@until
 
 Restart Codex and start a new task. The plugin registers Until's MCP server
 automatically.
+
+## Factory Droid
+
+Install Until from the Factory marketplace:
+
+```bash
+droid plugin marketplace add https://github.com/until-dev/plugins
+droid plugin install until@until --scope user
+```
+
+Restart Droid and start a fresh session. Complete MCP authentication when
+Until asks. The plugin supplies skills, MCP configuration and enforcement hooks
+from the same root as Claude Code. Droid loads that Claude-compatible layout;
+this release does not ship a native `.factory-plugin/` manifest.
+
+Factory Droid names shell and file tools differently from Claude Code. The
+main Droid session is enforced on `Execute` (shell) and `Create`, `Edit`, and
+`ApplyPatch` (files). Claude Code uses `Bash`, `Write`, and `Edit` for the
+same jobs. The shared commit gate maps each host onto the same enforcement
+paths.
+
+Task sub-droids launched with Droid's `Task` tool may run without the main
+session's hooks, so they can be ungated. There is no extra hook installer.
+
+If `python3` cannot run the hook, enforcement fails open and the tool is
+allowed. Until is a workflow guard, not a security sandbox.
+
+For local pre-release testing, add this repository's plugin directory as a
+marketplace source, then install from it:
+
+```bash
+droid plugin marketplace add /absolute/path/to/workspace/plugins
+droid plugin install until@until --scope user
+```
+
+Windows is not supported for Factory Droid enforcement hooks.
 
 ## OpenCode
 
@@ -102,7 +138,7 @@ repository, the hooks remain inactive until Plan submission or source-control
 setup begins. A repository containing `.until-method` is default-closed, so the
 hooks enforce the Until Rule before a Plan exists.
 
-Claude Code, OpenCode and Cursor expose different plugin and hook interfaces,
+Claude Code, Codex, Factory Droid, OpenCode and Cursor expose different plugin and hook interfaces,
 so their exact enforcement coverage differs. The hooks guard supported coding
 actions; they are not a general-purpose security sandbox.
 
@@ -139,8 +175,8 @@ Complete the browser flow, then run `/mcp` to confirm that the Until server is
 available. Start a fresh Pi session so the Until startup guidance is loaded.
 
 Pi support includes the Until skills, startup guidance and MCP tools. It does
-not include the deterministic enforcement hooks used by Claude Code, Cursor
-and OpenCode.
+not include the deterministic enforcement hooks used by Claude Code, Factory
+Droid, Cursor and OpenCode.
 
 ## Source control
 
@@ -170,6 +206,8 @@ If either stop is missing, see [Troubleshooting](troubleshooting.md).
 Claude Code updates Until through its plugin manager.
 
 Update Until through Codex's plugin manager, then restart Codex.
+
+Update Factory Droid through its plugin manager, then restart Droid.
 
 Refresh Until in OpenCode and restart it:
 
@@ -207,6 +245,8 @@ In Codex, remove Until and its marketplace:
 codex plugin remove until@until
 codex plugin marketplace remove until
 ```
+
+In Factory Droid, remove Until through the plugin manager.
 
 In OpenCode, remove `@until-dev/plugins` from the `plugin` array in
 `~/.config/opencode/opencode.json`, then restart OpenCode.

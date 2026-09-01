@@ -6,7 +6,7 @@ Until moves the important decisions into the Plan before a coding agent writes a
 
 For individual developers and teams whose agents can produce code faster than they can confidently review it.
 
-This plugin connects Cursor, Claude Code, Codex, OpenCode and Pi to Until, guiding the agent through the Until Loop.
+This plugin connects Cursor, Claude Code, Codex, Factory Droid, OpenCode and Pi to Until, guiding the agent through the Until Loop.
 
 The open-source plugin runs alongside your coding agent. The hosted Until workspace stores Plans and, once you connect source control, links them to pull requests and runs Plan checks.
 
@@ -76,9 +76,9 @@ They are written in Markdown and kept in git, so you can inspect and change them
 
 ### Requirements
 
-- Cursor, Claude Code, Codex, OpenCode or Pi
+- Cursor, Claude Code, Codex, Factory Droid, OpenCode or Pi
 - macOS or Linux
-- `python3` on `PATH` for the Claude Code, Cursor and OpenCode enforcement hooks
+- `python3` on `PATH` for the Claude Code, Cursor, Factory Droid and OpenCode enforcement hooks
 
 Windows is not supported yet. The skills that teach the Until Loop may load, but the hooks that track Plan state and enforce the Until Rule are not reliably launched or validated there. Nothing on Windows will stop an agent from writing code without a Plan.
 
@@ -96,6 +96,33 @@ codex plugin add until@until
 ```
 
 Restart Codex and start a new task. The plugin registers Until's MCP server automatically.
+
+### Factory Droid
+
+Install Until from the Factory marketplace:
+
+```bash
+droid plugin marketplace add https://github.com/until-dev/plugins
+droid plugin install until@until --scope user
+```
+
+Restart Droid and start a fresh session. Until's skills, MCP server and enforcement
+hooks load from the same plugin root as Claude Code. Droid uses that Claude-compatible
+layout; this release does not ship a native `.factory-plugin/` manifest.
+
+Factory Droid names shell and file tools differently from Claude Code. The
+main Droid session is enforced on `Execute` (shell) and `Create`, `Edit`, and
+`ApplyPatch` (files). Claude Code uses `Bash`, `Write`, and `Edit` for the
+same jobs. The shared commit gate maps each host onto the same enforcement
+paths.
+
+Task sub-droids launched with Droid's `Task` tool may run without the main
+session's hooks, so they can be ungated. There is no extra hook installer.
+
+If `python3` cannot run the hook, enforcement fails open and the tool is
+allowed. Until is a workflow guard, not a security sandbox.
+
+Windows is not supported for Factory Droid enforcement hooks.
 
 ### OpenCode
 
@@ -172,8 +199,8 @@ Then start a fresh session. Until's skills and startup guidance should be
 available, and `/mcp` should show the Until server.
 
 This first Pi release supports the Until workflow and MCP tools. Pi does not
-load the deterministic enforcement hooks used by Claude Code, Cursor and
-OpenCode.
+load the deterministic enforcement hooks used by Claude Code, Factory Droid,
+Cursor and OpenCode.
 
 ### Verify the installation
 
@@ -186,6 +213,8 @@ Until should begin by helping you shape the change and create a Plan before writ
 Claude Code updates through the plugin manager.
 
 Update Until through Codex's plugin manager, then restart Codex.
+
+Update Factory Droid through its plugin manager, then restart Droid.
 
 Refresh the global OpenCode plugin and restart OpenCode:
 
@@ -221,6 +250,8 @@ On Codex, remove the plugin and marketplace:
 codex plugin remove until@until
 codex plugin marketplace remove until
 ```
+
+On Factory Droid, remove Until through the plugin manager.
 
 On OpenCode, remove `@until-dev/plugins` from the `plugin` array in
 `~/.config/opencode/opencode.json`, then restart OpenCode.
