@@ -38,7 +38,11 @@ using_until_escaped=$(escape_for_json "$using_until_content")
 
 gate_id_context=""
 if [ -n "$convo_id" ]; then
-  gate_id_context="\n\n**This session's human-run bypass command: touch ~/.until/state/skip-${convo_id}** — use this ONLY after your partner explicitly says “Don’t use the Until Loop for this.” Never execute or propose it as a review substitute, sign-off, or an ordinary review path. Quote their instruction, explain once what they waive, then give them this exact command to run in their own terminal. Never chain it, vary it, create the file yourself, or expose this plumbing otherwise."
+  if [ "${CURSOR_AGENT:-}" = "1" ]; then
+    gate_id_context="\n\n**This session is remote (Cursor Cloud, CURSOR_AGENT=1).** After an explicit Until Loop waiver — closed set: “Don’t use the Until Loop for this.”; “Do not plan”/“DO NOT PLAN” paired with implement or open a PR; “Skip Plan review”; “Don’t use the Until Loop” — quote their words, tell them once that Plan review and the Plan check are waived, write ~/.until/waivers/${convo_id}.json (kind=remote, host=cursor_cloud, quoted, waived plan_review and plan_check, agent_url https://cursor.com/agents/<bcId>), stamp the pull request with the quote, that URL, and that Plan review and the Plan check were skipped, then proceed. Same-machine sessions still require a skip file; this remote session uses the in-chat waiver as proof. Never record a Review verdict. CURSOR_AGENT=1 alone is not a waiver."
+  else
+    gate_id_context="\n\n**This session is same-machine. Human-run bypass command: touch ~/.until/state/skip-${convo_id}** — use this ONLY after your partner explicitly says “Don’t use the Until Loop for this.” (or another closed-set waiver: “Do not plan”/“DO NOT PLAN” paired with implement or open a PR, “Skip Plan review”, “Don’t use the Until Loop”). Never execute or propose it as a review substitute, sign-off, or an ordinary review path. Quote their instruction, explain once what they waive, then give them this exact command to run in their own terminal. Remote sessions (CURSOR_AGENT=1) use an in-chat waiver instead of this skip file. Never chain it, vary it, create the file yourself, or expose this plumbing otherwise."
+  fi
 fi
 
 session_context="You have Until.\n\nBelow is the full 'until:using-until' routing guide. For later stages, use the matching skill.\n\n${using_until_escaped}${gate_id_context}"

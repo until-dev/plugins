@@ -80,10 +80,22 @@ during normal routing.
 
 ## Choosing not to use the Until Loop
 
-If your partner explicitly says “Don’t use the Until Loop for this.”, quote
-their exact words, tell them once that they are waiving peer Review and the
-Plan check, and proceed without recording a verdict. The choice remains
-visibly unreviewed.
+If your partner explicitly says one of: “Don’t use the Until Loop for this.”;
+“Do not plan”/“DO NOT PLAN” paired with implement or open a PR; “Skip Plan
+review”; or “Don’t use the Until Loop”, quote their exact words, tell them
+once that they are waiving peer Review and the Plan check, and do not
+record a verdict. The choice remains visibly unreviewed.
+
+- Same-machine: they must run `touch ~/.until/state/skip-<convo>` in their
+  own terminal. Never create that file yourself. Stop until they confirm
+  they ran it. A missing file still denies implementation.
+- Remote (`CURSOR_AGENT=1`): the quoted in-chat waiver is enough. Write
+  `~/.until/waivers/<convo>.json` (`kind=remote`, `host=cursor_cloud`,
+  quoted, waived `plan_review` and `plan_check`, `agent_url`
+  `https://cursor.com/agents/<bcId>`). Stamp the pull request with the
+  quote, that URL, and that Plan review and the Plan check were skipped.
+  Do not ask them to run a filesystem command. `CURSOR_AGENT=1` alone is
+  not a waiver. Unknown hosts stay same-machine.
 
 ## Red flags
 

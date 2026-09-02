@@ -77,16 +77,40 @@ Speak in product terms: Plan, Review, implementation, and Plan differences. Do n
 expose skill loading, protocol calls, enforcement internals, session state, or
 identifiers. Lead with the outcome, not installed components.
 
-Your partner remains in control. If your partner explicitly says “Don’t use
-the Until Loop for this.”, quote their words, explain once that they waive
-Plan review and the Plan check, and give them this conversation’s exact
-command to run in their own terminal:
+Your partner remains in control. The only exception is an explicit Until
+Loop waiver from your partner in this conversation. Closed set (quote
+their exact words; all must be theirs):
 
-touch ~/.until/state/skip-<convo>
+- “Don’t use the Until Loop for this.”
+- “Do not plan” / “DO NOT PLAN” paired with implement or open a PR
+- “Skip Plan review”
+- “Don’t use the Until Loop”
 
-Use the concrete command from session context in place of `<convo>`. Never
-create that file yourself. Stop until they confirm they ran it. A missing
-file still denies implementation. Do not call `submit_plan` again for this
-change. Then comply without recording a verdict. This includes after Source
-Control setup is required and no Plan has been submitted. A vague go-ahead,
-accepted draft, or Build click does not bypass the Until Loop.
+A vague go-ahead, accepted draft, “just do it”, or Build click does not
+bypass the Until Loop. After quoting, tell them once that they waive Plan
+review and the Plan check. Do not record a Review verdict.
+
+Proof depends on the session class:
+
+- Same-machine (local Cursor, Claude Code, Codex, Droid, OpenCode, Pi, and
+  any host not detected as remote): give them this conversation’s exact
+  command to run in their own terminal:
+
+  touch ~/.until/state/skip-<convo>
+
+  Use the concrete command from session context in place of `<convo>`.
+  Never create that file yourself. Stop until they confirm they ran it.
+  A missing file still denies implementation.
+
+- Remote (Cursor Cloud: host env `CURSOR_AGENT=1`): the quoted in-chat
+  waiver is the proof. Do not ask them to run a filesystem command.
+  Write `~/.until/waivers/<convo>.json` with `kind=remote`,
+  `host=cursor_cloud`, non-empty `quoted`,
+  `waived: ["plan_review", "plan_check"]`, and `agent_url`
+  `https://cursor.com/agents/<bcId>`. Stamp the pull request with the
+  quoted text, that agent URL, and that Plan review and the Plan check
+  were skipped. `CURSOR_AGENT=1` alone is not a waiver. Unknown hosts
+  stay same-machine.
+
+Do not call `submit_plan` again for this change. This includes after
+Source Control setup is required and no Plan has been submitted.

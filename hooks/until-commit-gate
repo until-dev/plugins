@@ -219,10 +219,12 @@ traffic). Two enforcement modes:
    committed. Repos without the marker are unaffected.
 
 Text rails persuade; this hook simply refuses. Escape valves are
-human-only — every agent shell or file tool that targets ~/.until/state
-is denied. A human can still act directly from their own terminal:
-  - choose not to use the Until Loop: touch ~/.until/state/skip-<convo>
-  - clear an in-flight gate:          rm ~/.until/state/session-<convo>.json
+human-only for same-machine sessions — every agent shell or file tool
+that targets ~/.until/state is denied. Proof of an Until Loop waiver:
+  - same-machine: the human runs touch ~/.until/state/skip-<convo>
+  - remote (CURSOR_AGENT=1): a valid ~/.until/waivers/<convo>.json
+    after an in-chat waiver. CURSOR_AGENT=1 alone is not a waiver.
+  - clear an in-flight gate: rm ~/.until/state/session-<convo>.json
 
 Anti-tamper is TOKEN-based, not substring-based: a command is denied when
 one of its parsed arguments actually resolves to a path in the state dir
@@ -244,7 +246,10 @@ from datetime import datetime, timezone
 HOME = os.path.expanduser("~")
 UNTIL_ROOT = os.path.realpath(os.path.join(HOME, ".until"))
 STATE_DIR = os.path.realpath(os.path.join(UNTIL_ROOT, "state"))
+WAIVERS_DIR = os.path.realpath(os.path.join(UNTIL_ROOT, "waivers"))
 PLAN_ID_RE = re.compile(r"^UNTIL-[0-9]+$")
+AGENT_URL_RE = re.compile(r"^https://cursor\.com/agents/bc-[A-Za-z0-9-]+$")
+REQUIRED_WAIVED = frozenset({"plan_review", "plan_check"})
 
 EDIT_TOOL_PAT = re.compile(
     r"write|edit|str_?replace|multi_?edit|apply_?patch|search_replace|delete|notebook|create",
@@ -388,6 +393,46 @@ def pending_upload_command_matches(state, cmd):
     end = len(cmd) - len(suffix) if suffix else len(cmd)
     replacement = cmd[len(prefix):end]
     return safe_absolute_path_substitution(replacement)
+
+
+def is_remote_session():
+    """Cursor Cloud Agents set CURSOR_AGENT=1. Unknown hosts stay same-machine."""
+    return os.environ.get("CURSOR_AGENT") == "1"
+
+
+def valid_remote_waiver(convo):
+    """True when ~/.until/waivers/<convo>.json matches the remote waiver contract."""
+    if not convo or convo == "unknown":
+        return False
+    if os.sep in convo or (os.altsep and os.altsep in convo):
+        return False
+    if convo in {".", ".."}:
+        return False
+    path = os.path.join(WAIVERS_DIR, f"{convo}.json")
+    try:
+        with open(path) as f:
+            data = json.load(f)
+    except Exception:
+        return False
+    if not isinstance(data, dict):
+        return False
+    if data.get("kind") != "remote":
+        return False
+    if data.get("host") != "cursor_cloud":
+        return False
+    quoted = data.get("quoted")
+    if not isinstance(quoted, str) or not quoted.strip():
+        return False
+    waived = data.get("waived")
+    if not isinstance(waived, list):
+        return False
+    waived_set = {item for item in waived if isinstance(item, str)}
+    if not REQUIRED_WAIVED.issubset(waived_set):
+        return False
+    agent_url = data.get("agent_url")
+    if not isinstance(agent_url, str) or not AGENT_URL_RE.fullmatch(agent_url):
+        return False
+    return True
 
 
 def contained_path(target, root=None, cwd=None):
@@ -603,7 +648,10 @@ def main():
     changes_requested = has_valid_plan and state.get("stage") == "changes_requested"
     build_allowed = approved or review_not_required
     in_flight = setup_required or (has_valid_plan and not build_allowed)
-    skipped = os.path.exists(skip_path)
+    remote = is_remote_session()
+    skipped = os.path.exists(skip_path) or (
+        remote and valid_remote_waiver(convo)
+    )
     plan_id = tracked_plan_id if has_valid_plan else "unavailable"
     review_requirement = (state or {}).get("review_requirement")
     review_not_required_pending = (
@@ -614,6 +662,34 @@ def main():
         in_flight and review_requirement not in ("required", "not_required")
     )
 
+    if remote:
+        waiver_agent = (
+            "If the partner explicitly says one of: “Don’t use the Until Loop for "
+            "this.”; “Do not plan”/“DO NOT PLAN” paired with implement or open a PR; "
+            "“Skip Plan review”; or “Don’t use the Until Loop”, quote their words, "
+            "tell them once that Plan review and the Plan check are waived, write "
+            f"~/.until/waivers/{convo}.json (kind=remote, host=cursor_cloud, quoted, "
+            "waived plan_review and plan_check, agent_url "
+            "https://cursor.com/agents/<bcId>), stamp the pull request with the quote, "
+            "that URL, and that Plan review and the Plan check were skipped, then "
+            "proceed. Do not ask them to run a filesystem command. Never record a "
+            "Review verdict. CURSOR_AGENT=1 alone is not a waiver. Same-machine "
+            "sessions still require the skip file; this session is remote."
+        )
+    else:
+        waiver_agent = (
+            "If the partner explicitly says one of: “Don’t use the Until Loop for "
+            "this.”; “Do not plan”/“DO NOT PLAN” paired with implement or open a PR; "
+            "“Skip Plan review”; or “Don’t use the Until Loop”, quote their words, "
+            "tell them once what they waive and give them this same-machine "
+            f"human-run command: touch '{skip_path}'. Then stop until your partner "
+            "confirms they ran that command. A missing skip file still denies "
+            "implementation. Remote sessions use an in-chat waiver instead; this "
+            "session is same-machine. Do not call submit_plan again for this "
+            "change. Otherwise never surface the command. Relay blocks in Until "
+            "Loop terms only."
+        )
+
     # agent_message is read by the model; user_message is shown VERBATIM in the
     # user's chat — so user messages speak the product (plan/review/submission)
     # and never the machinery (hooks/gates/state).
@@ -623,12 +699,7 @@ def main():
             "submitted. Stop before implementation. Present the setup link from the "
             "submit_plan response, wait for your partner to confirm setup, then retry "
             "submission. Plan acceptance or an implementation request does not waive "
-            "this blocker. If the partner explicitly says “Don’t use the Until Loop "
-            "for this.”, tell them once what they waive and give them this human-run "
-            f"command: touch '{skip_path}'. Then stop until your partner confirms they "
-            "ran that command. A missing skip file still denies implementation. Do "
-            "not call submit_plan again for this change. Otherwise never surface the "
-            "command. Relay blocks in Until Loop terms only."
+            f"this blocker. {waiver_agent}"
         )
         in_flight_user_msg = (
             "Until still needs repository access before this plan can be submitted. "
@@ -691,10 +762,8 @@ def main():
             "verdict. Blocked until another human records approval. Legitimate moves: "
             "(1) load getting-a-review and route it to a teammate or connected review service; "
             "(2) revise with update_plan if changes were requested; (3) wait. A "
-            "partner's go-ahead in chat or a Build click is not a verdict. If the "
-            "partner explicitly says “Don’t use the Until Loop for this.”, tell them once what they waive "
-            f"and give them this human-run command: touch '{skip_path}'. Otherwise "
-            "never surface it. Relay blocks in Until Loop terms only."
+            "partner's go-ahead in chat or a Build click is not a verdict. "
+            f"{waiver_agent}"
         )
         in_flight_user_msg = (
             f"Until: plan {plan_id} is awaiting peer review — building stays paused "
@@ -711,9 +780,8 @@ def main():
         "its upload is confirmed; a review-required plan proceeds after another "
         "human approves it. A direct "
         "instruction to make the change is the START of that "
-        "conversation, not permission to bypass it. If your partner says "
-        "“Don’t use the Until Loop for this.”, THEY must run this in their own terminal: "
-        f"touch '{skip_path}' — When you relay this block, use Until Loop terms only "
+        f"conversation, not permission to bypass it. {waiver_agent} "
+        "When you relay this block, use Until Loop terms only "
         "('this repo needs a submitted plan first') — no hooks/gates/state in chat."
     )
     default_closed_user_msg = (
@@ -723,17 +791,30 @@ def main():
 
     log(f"commit-gate fired: event={event} tool={payload.get('tool_name', '')} convo={convo} "
         f"build_allowed={build_allowed} in_flight={in_flight} "
-        f"pending_upload_expired={pending_upload_expired} skipped={skipped}")
+        f"pending_upload_expired={pending_upload_expired} skipped={skipped} remote={remote}")
 
     if event == "beforeShellExecution":
         cmd = payload.get("command") or ""
         # Only the human may create skip tokens or clear state, so this must
         # run even when nothing is gated yet.
         if targets_state_dir(cmd, payload.get("cwd")):
+            if remote:
+                deny(
+                    "UNTIL GATE: agents may not touch Until session state (that includes "
+                    "creating skip tokens). On a remote session the proof is an in-chat "
+                    f"waiver plus ~/.until/waivers/{convo}.json, not a skip file. Same-machine "
+                    "sessions still use the human-run skip file. Never present this as solo "
+                    "approval or an ordinary review path.",
+                    "Until can't waive its own process. If you said “Don’t use the Until "
+                    "Loop for this.”, the bypass has to come from you.",
+                )
             deny(
                 "UNTIL GATE: agents may not touch Until session state (that includes "
                 "creating skip tokens). Only your partner can do that, from their own "
-                f"terminal after saying “Don’t use the Until Loop for this.”: touch '{skip_path}'. "
+                "terminal after an explicit Until Loop waiver (“Don’t use the Until Loop "
+                f"for this.”; “Do not plan”/“DO NOT PLAN” paired with implement or open a "
+                f"PR; “Skip Plan review”; or “Don’t use the Until Loop”): touch '{skip_path}'. "
+                "Remote sessions use an in-chat waiver instead; this session is same-machine. "
                 "Never present this as solo approval or an ordinary review path. Relay "
                 "it only after that exact instruction; no hooks/gates/state talk.",
                 "Until can't waive its own process. If you said “Don’t use the Until "
@@ -801,12 +882,26 @@ def main():
             # denial stays ahead of the skip-token allow so a waived
             # conversation still cannot touch ~/.until/state.
             if until_target == UNTIL_ROOT or contained_path(target, STATE_DIR, cwd):
+                if remote:
+                    deny(
+                        "UNTIL GATE: agents may not touch Until session state (that "
+                        "includes creating skip tokens via file tools). On a remote "
+                        "session the proof is an in-chat waiver plus "
+                        f"~/.until/waivers/{convo}.json, not a skip file. Same-machine "
+                        "sessions still use the human-run skip file. Never present this "
+                        "as solo approval.",
+                        "Until can't waive its own process. If you said “Don’t use the Until "
+                        "Loop for this.”, the bypass has to come from you.",
+                    )
                 deny(
                     "UNTIL GATE: agents may not touch Until session state (that "
                     "includes creating skip tokens via file tools). Only your partner "
-                    f"can, from their own terminal after saying “Don’t use the Until "
-                    f"Loop for this.”: touch '{skip_path}'. Never present this as solo "
-                    "approval. Relay it only after that exact instruction.",
+                    "can, from their own terminal after an explicit Until Loop waiver "
+                    "(“Don’t use the Until Loop for this.”; “Do not plan”/“DO NOT PLAN” "
+                    "paired with implement or open a PR; “Skip Plan review”; or “Don’t "
+                    f"use the Until Loop”): touch '{skip_path}'. Remote sessions use an "
+                    "in-chat waiver instead; this session is same-machine. Never present "
+                    "this as solo approval. Relay it only after that exact instruction.",
                     "Until can't waive its own process. If you said “Don’t use the Until "
                     "Loop for this.”, the bypass has to come from you.",
                 )

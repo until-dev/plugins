@@ -80,10 +80,28 @@ notes or reconcile the plan after the code.
 
 ## Choosing not to use the Until Loop
 
-The only way to build without a cleared plan is for your partner to explicitly
-say “Don’t use the Until Loop for this.” Quote their exact words and explain
-once that they are waiving Plan review and the Plan check. Do not record a
-verdict or describe the work as approved.
+The only way to build without a cleared plan is an explicit Until Loop
+waiver from your partner in this conversation. Closed set (quote their
+exact words):
+
+- “Don’t use the Until Loop for this.”
+- “Do not plan” / “DO NOT PLAN” paired with implement or open a PR
+- “Skip Plan review”
+- “Don’t use the Until Loop”
+
+Tell them once that they are waiving Plan review and the Plan check. Do
+not record a verdict or describe the work as approved.
+
+- Same-machine: they must run `touch ~/.until/state/skip-<convo>` in their
+  own terminal. Never create that file yourself. Stop until they confirm
+  they ran it. A missing file still denies implementation.
+- Remote (`CURSOR_AGENT=1`): the quoted in-chat waiver is enough. Write
+  `~/.until/waivers/<convo>.json` (`kind=remote`, `host=cursor_cloud`,
+  quoted, waived `plan_review` and `plan_check`, `agent_url`
+  `https://cursor.com/agents/<bcId>`). Stamp the pull request with the
+  quote, that URL, and that Plan review and the Plan check were skipped.
+  Do not ask them to run a filesystem command. `CURSOR_AGENT=1` alone is
+  not a waiver. Unknown hosts stay same-machine.
 
 If no plan was submitted, Until has nothing to compare with the pull request,
 so no Plan check will run. This choice does not waive normal branch,

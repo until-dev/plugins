@@ -69,23 +69,47 @@ upload command, then `get_plan` — never an edit. Follow the returned
 routes to `getting-a-review`. Approval also reports readiness and stops until
 the fresh implementation instruction.
 
-The ONLY exception: your partner says, “Don’t use the Until Loop for this.”
-Clicking Build, approving a draft, saying
-"looks good", or any "explicit go-ahead" you infer is NOT that instruction.
-Before invoking this exception you must QUOTE the exact sentence where they
-said to skip review. Can't quote one? Then it wasn't said. When they do say
-it, tell them once what they're giving up (Review + Plan check), then give
-them this conversation’s exact human-run command:
+The ONLY exception is an explicit Until Loop waiver from your partner in
+this conversation. Closed set (quote their exact words; all must be
+theirs):
 
-touch ~/.until/state/skip-<convo>
+- “Don’t use the Until Loop for this.”
+- “Do not plan” / “DO NOT PLAN” paired with implement or open a PR
+- “Skip Plan review”
+- “Don’t use the Until Loop”
 
-Use the concrete command from session context in place of `<convo>`. Never
-create that file yourself. Stop until they confirm they ran it. A missing
-file still denies implementation. Do not call `submit_plan` again for this
-change. Then comply — WITHOUT recording any verdict. The choice stays
-visibly unreviewed; never convert your partner's go-ahead into an approval
-you record in Until. This includes after Source Control setup is required
-and no Plan ID exists.
+Clicking Build, approving a draft, saying "looks good", “just do it”, or
+any inferred go-ahead is NOT a waiver. Can't quote one of the phrases
+above? Then it wasn't said.
+
+After quoting, tell them once that Plan review and the Plan check are
+waived. Do not record a Review verdict. Then follow the session class:
+
+- Same-machine (local Cursor, Claude Code, Codex, Droid, OpenCode, Pi, and
+  any host not detected as remote): give them this conversation’s exact
+  human-run command:
+
+  touch ~/.until/state/skip-<convo>
+
+  Use the concrete command from session context in place of `<convo>`.
+  Never create that file yourself. Stop until they confirm they ran it.
+  A missing file still denies implementation.
+
+- Remote (Cursor Cloud: host env `CURSOR_AGENT=1`): the quoted in-chat
+  waiver is the proof. Do not ask them to run a filesystem command.
+  Write `~/.until/waivers/<convo>.json` with `kind=remote`,
+  `host=cursor_cloud`, non-empty `quoted`,
+  `waived: ["plan_review", "plan_check"]`, and `agent_url`
+  `https://cursor.com/agents/<bcId>` (`bc-` id from
+  `CURSOR_CONVERSATION_ID` or cursor-cloud run-info). Then proceed.
+  Stamp the pull request with the quoted text, that agent URL, and that
+  Plan review and the Plan check were skipped.
+  `CURSOR_AGENT=1` alone is not a waiver. Unknown hosts stay same-machine.
+
+Do not call `submit_plan` again for this change. The choice stays
+visibly unreviewed; never convert the waiver into an approval you record
+in Until. This includes after Source Control setup is required and no
+Plan ID exists.
 
 Note: once a plan submission begins, deterministic enforcement blocks file
 edits and git commit/push until `get_plan` confirms either that review is not

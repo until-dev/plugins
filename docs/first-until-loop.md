@@ -130,15 +130,29 @@ requiring you to supervise every tool call.
 
 ## Bypassing the Until Loop
 
-If the loop does not fit a particular change, tell the agent:
+If the loop does not fit a particular change, say one of:
 
 > Don't use the Until Loop for this.
+> Don't use the Until Loop
+> Skip Plan review
+> Do not plan
+> DO NOT PLAN
+
+(“Do not plan” / “DO NOT PLAN” only counts when you also ask the agent to
+implement or open a pull request.) Saying “looks good”, clicking Build, or
+“just do it” does not bypass the loop.
 
 Until explains that you are giving up Plan review and the Plan check, then
-stands aside. When enforcement is active, it gives you a session-specific
-bypass command that you must run in your own terminal; the agent cannot run it
-for you. This includes after Until asks for source-control setup and no Plan
-ID exists. Clicking Build, accepting a draft, or saying “looks good” does not
-bypass the loop.
+stands aside. It does not record a Review verdict.
+
+On Cursor Cloud, saying that in the agent chat is enough. The pull request
+will include your quoted words, the Cloud Agent URL, and that Plan review
+and the Plan check were skipped.
+
+In a local session, Until also gives you a session-specific bypass command
+that you must run in your own terminal; the agent cannot run it for you.
+
+This includes after Until asks for source-control setup and no Plan ID
+exists.
 
 Next: [Understand Plan checks](plan-checks.md).
