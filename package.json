@@ -58,7 +58,7 @@
     "image": "https://unpkg.com/pi-until-loop@0.2.8/assets/pi-catalog.png"
   },
   "dependencies": {
-    "pi-mcp-adapter": "2.26.1"
+    "pi-mcp-adapter": "2.31.0"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"
