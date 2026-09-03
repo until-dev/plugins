@@ -76,7 +76,7 @@ They are written in Markdown and kept in git, so you can inspect and change them
 
 ### Requirements
 
-- Cursor, Claude Code, Codex, Factory Droid, OpenCode, Pi or Amp
+- Cursor, Claude Code, Codex, Factory Droid, GitHub Copilot, OpenCode, Pi or Amp
 - macOS or Linux
 - `python3` on `PATH` for the Claude Code, Cursor, Factory Droid and OpenCode enforcement hooks (Amp uses TypeScript enforcement in the plugin; no Python required)
 
@@ -85,17 +85,6 @@ Windows is not supported yet. The skills that teach the Until Loop may load, but
 ### Claude Code
 
 Follow the [Quickstart](#quickstart). Claude Code loads its enforcement hooks from the plugin, so there is no separate hook-installation step.
-
-### Codex
-
-Install Until through Codex's plugin marketplace:
-
-```bash
-codex plugin marketplace add until-dev/plugins
-codex plugin add until@until
-```
-
-Restart Codex and start a new task. The plugin registers Until's MCP server automatically.
 
 ### Factory Droid
 
@@ -173,6 +162,35 @@ Reload the window with **Developer: Reload Window**, then start a fresh chat.
 The extra hook installation is a platform limitation rather than a design choice. Cursor dispatches plugin-shipped hooks for `sessionStart`, but the enforcement events (`afterMCPExecution`, `beforeShellExecution`, `preToolUse`) load only from the user or project `hooks.json` chain.
 
 The enforcement hooks are inactive in ordinary conversations until Plan submission or source-control setup begins. A repository containing `.until-method` is enforced before a Plan exists. Installing the hooks globally is therefore safe.
+
+### GitHub Copilot
+
+Install Until through Copilot's plugin manager:
+
+```bash
+copilot plugin marketplace add until-dev/plugins
+copilot plugin install until@until
+```
+
+This single install covers two surfaces:
+
+- **Copilot CLI in the terminal.** The plugin loads on the next `copilot` invocation. Run `/plugins` in a session to confirm `until@until` is listed.
+- **Copilot Chat in VS Code.** VS Code auto-discovers plugins installed via the Copilot CLI (from `~/.copilot/installed-plugins/`) and loads Until the next time you open Chat. Requires VS Code 1.102 or later for Agent Plugins support. To confirm the install: open the Extensions view, filter by `@agentPlugins`, and check that Until appears under `Agent Plugins - Installed`. If it doesn't, restart VS Code once — auto-discovery runs on VS Code startup.
+
+Both surfaces route new implementation asks through the Until Loop: Copilot brainstorms, drafts a Plan, submits it for review, and only writes code once the Plan is cleared.
+
+Copilot's async Coding Agent — which opens PRs from GitHub issues in a cloud environment — is not covered by this install.
+
+### Codex
+
+Install Until through Codex's plugin marketplace:
+
+```bash
+codex plugin marketplace add until-dev/plugins
+codex plugin add until@until
+```
+
+Restart Codex and start a new task. The plugin registers Until's MCP server automatically.
 
 ### Pi
 
@@ -267,6 +285,14 @@ git pull
 
 The existing hook entries point into that clone and do not need reinstalling after an ordinary pull. If the clone moved or the hooks are missing, follow [Troubleshooting](docs/troubleshooting.md#until-enforcement-hooks-do-not-run).
 
+Update through Copilot's plugin manager:
+
+```bash
+copilot plugin update until@until
+```
+
+VS Code Chat picks up updated plugin content on the next window reload.
+
 Refresh the installed Pi package with:
 
 ```bash
@@ -301,6 +327,15 @@ On OpenCode, remove `@until-dev/plugins` from the `plugin` array in
 `~/.config/opencode/opencode.json`, then restart OpenCode.
 
 On Cursor, delete the plugin symlink and remove the Until entries from your user-level `hooks.json`.
+
+Remove the plugin from Copilot:
+
+```bash
+copilot plugin remove until@until
+copilot plugin marketplace remove until-dev/plugins
+```
+
+VS Code Chat stops auto-discovering Until on the next window reload.
 
 On Pi, remove the package:
 
