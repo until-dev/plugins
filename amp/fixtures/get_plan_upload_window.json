@@ -1,0 +1,42 @@
+{
+  "source": "test_upload_window",
+  "kind": "reduce",
+  "tool": "get_plan",
+  "prior": {
+    "plan_id": "UNTIL-101",
+    "stage": "submitted"
+  },
+  "toolInput": {
+    "id": "UNTIL-101"
+  },
+  "result": {
+    "id": "UNTIL-101",
+    "status": "submitted",
+    "author_principal_id": "author-principal",
+    "lifecycle": {
+      "stage": "submitted"
+    },
+    "review": {
+      "requirement": "required",
+      "policy_reason": "workspace_policy_required"
+    },
+    "upload": {
+      "expires_at": "2099-01-01T00:00:00Z"
+    },
+    "next_action": {
+      "command": "curl -fsS example"
+    }
+  },
+  "now": "2026-09-02T14:00:00.000Z",
+  "expected": {
+    "action": "write",
+    "state": {
+      "plan_id": "UNTIL-101",
+      "stage": "pending_upload",
+      "review_requirement": "required",
+      "review_policy_reason": "workspace_policy_required",
+      "pending_upload_command": "curl -fsS example",
+      "pending_upload_expires_at": "2099-01-01T00:00:00Z"
+    }
+  }
+}

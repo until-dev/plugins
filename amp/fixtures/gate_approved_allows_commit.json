@@ -1,0 +1,26 @@
+{
+  "source": "test_gate_allows_commit_after_needs_attention_clearance",
+  "kind": "gate",
+  "facts": {
+    "state": {
+      "plan_id": "UNTIL-101",
+      "stage": "approved",
+      "review_requirement": "required",
+      "review_policy_reason": "workspace_policy_required"
+    },
+    "skipped": false,
+    "untilMethodRoot": null,
+    "untilRoot": "/home/test-user/.until",
+    "stateDir": "/home/test-user/.until/state",
+    "skipPath": "/home/test-user/.until/state/skip-review-requirement-test",
+    "now": "2026-09-02T14:00:00.000Z"
+  },
+  "tool": {
+    "kind": "shell",
+    "command": "git commit -m test",
+    "cwd": "/tmp"
+  },
+  "expected": {
+    "allow": true
+  }
+}

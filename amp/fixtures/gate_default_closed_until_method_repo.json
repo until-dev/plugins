@@ -1,0 +1,22 @@
+{
+  "source": "test_droid_task_denies_in_until_method_repo_without_plan",
+  "kind": "gate",
+  "facts": {
+    "state": null,
+    "skipped": false,
+    "untilMethodRoot": "/tmp/until-method-repo",
+    "untilRoot": "/home/test-user/.until",
+    "stateDir": "/home/test-user/.until/state",
+    "skipPath": "/home/test-user/.until/state/skip-tool-classification-test",
+    "now": "2026-09-02T14:00:00.000Z"
+  },
+  "tool": {
+    "kind": "spawn",
+    "cwd": "/tmp/until-method-repo"
+  },
+  "expected": {
+    "allow": false,
+    "agentMessage": "UNTIL GATE: this repository is marked `.until-method` \u2014 every change here requires a submitted plan cleared by Until's review policy, and this conversation has none. No edits, no commits until then. The path forward is the method itself: load `brainstorming` to agree the shape with your partner, `writing-a-good-plan` to draft it, and submit_plan. A review-not-required plan proceeds after its upload is confirmed; a review-required plan proceeds after another human approves it. A direct instruction to make the change is the START of that conversation, not permission to bypass it. If your partner says \u201cDon\u2019t use the Until Loop for this.\u201d, THEY must run this in their own terminal: touch '/home/test-user/.until/state/skip-tool-classification-test' \u2014 When you relay this block, use Until Loop terms only ('this repo needs a submitted plan first') \u2014 no hooks/gates/state talk.",
+    "userMessage": "Until: this repository asks for a submitted plan before any change, and this session doesn't have one yet \u2014 so we'll plan first."
+  }
+}

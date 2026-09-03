@@ -1,0 +1,35 @@
+{
+  "source": "test_replacement_state_sets_policy_from_current_response",
+  "kind": "reduce",
+  "tool": "get_plan",
+  "prior": {
+    "plan_id": "UNTIL-101",
+    "stage": "submitted",
+    "review_requirement": "required",
+    "review_policy_reason": "workspace_policy_required"
+  },
+  "toolInput": {
+    "id": "UNTIL-101"
+  },
+  "result": {
+    "id": "UNTIL-101",
+    "status": "submitted",
+    "lifecycle": {
+      "stage": "submitted"
+    },
+    "author_principal_id": "author-principal",
+    "review": {
+      "requirement": "not_required",
+      "policy_reason": "workspace_policy_disabled"
+    }
+  },
+  "expected": {
+    "action": "write",
+    "state": {
+      "plan_id": "UNTIL-101",
+      "review_requirement": "not_required",
+      "review_policy_reason": "workspace_policy_disabled",
+      "stage": "review_not_required"
+    }
+  }
+}

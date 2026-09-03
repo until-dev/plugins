@@ -47,13 +47,31 @@ before the workspace was created or selected.
    fresh session.
 5. In Pi, run `/mcp` to confirm the Until server is listed, then run
    `/mcp-auth until` and complete the browser flow.
-6. Return to the same conversation after the browser flow.
-7. If Until presents a setup link, use that exact link rather than guessing a
+6. In Amp, run `amp mcp doctor`. On first load the Until server is often **awaiting approval** even after the plugin registered it — run `amp mcp approve until`, then check again. If `until` is missing entirely, add
+   `https://run.until.dev/mcp` under Settings → MCP (website) or run
+   `amp mcp add until https://run.until.dev/mcp` (CLI). Reload Amp if tools
+   still do not appear after approval and OAuth.
+7. Return to the same conversation after the browser flow.
+8. If Until presents a setup link, use that exact link rather than guessing a
    workspace URL.
-8. Start a fresh conversation after authentication if the existing session
+9. Start a fresh conversation after authentication if the existing session
    still cannot see the workspace.
 
 Do not include OAuth tokens or other credentials in a support issue.
+
+### Until MCP is not connected
+
+**Symptom:** Until skills load but MCP tools (`submit_plan`, `get_plan`, …) are missing, or `amp mcp doctor` does not list `until`.
+
+**Try (Amp):**
+
+1. Run `amp plugins list` and confirm `until` is present.
+2. Run `amp mcp doctor`. If the server is **awaiting approval**, run `amp mcp approve until`.
+3. If `until` is absent, add the server manually:
+   - Website: Settings → MCP → add `https://run.until.dev/mcp`
+   - CLI: `amp mcp add until https://run.until.dev/mcp`
+4. Reload Amp or start a fresh thread after approval and OAuth complete.
+5. If you cloned the plugin, confirm the directory is `until` (not `plugins`) so the entry point and skills resolve correctly. Amp does not follow a symlink of the whole plugin tree as `index.ts`.
 
 ## Enforcement
 
@@ -84,6 +102,11 @@ support boundary.
 Pi loads Until's startup guidance and MCP tools, but it does not load these
 deterministic enforcement hooks. If a Pi agent ignores the guidance, no hook
 blocks implementation, including in a repository with `.until-method`.
+
+Amp loads startup guidance, MCP, skills and TypeScript enforcement in the
+plugin. If a new thread lacks `until:using-until bootstrap for amp`, reload
+the plugin (`plugins: reload`) or restart Amp. Confirm the plugin directory
+is named `until` under `~/.config/amp/plugins/` or your personal plugin repo.
 
 On Windows, the guidance may load while enforcement does not. Windows is not a
 supported environment for the current hooks.
@@ -403,7 +426,7 @@ is unnecessary and does not rewrite existing entries.
 
 Include:
 
-- Claude Code, Codex, Factory Droid, Cursor, OpenCode or Pi and its version;
+- Claude Code, Codex, Factory Droid, Cursor, OpenCode, Pi or Amp and its version;
 - operating system;
 - Until plugin version or commit;
 - the step and documentation section followed;

@@ -1,0 +1,32 @@
+{
+  "source": "test_approval_without_recognized_requirement_stays_blocked[1]",
+  "kind": "reduce",
+  "tool": "get_plan",
+  "prior": {
+    "plan_id": "UNTIL-101",
+    "stage": "submitted"
+  },
+  "toolInput": {
+    "id": "UNTIL-101"
+  },
+  "result": {
+    "id": "UNTIL-101",
+    "status": "submitted",
+    "lifecycle": {
+      "stage": "approved"
+    },
+    "author_principal_id": "author-principal",
+    "review": {
+      "policy_reason": "workspace_policy_required"
+    }
+  },
+  "expected": {
+    "action": "write",
+    "state": {
+      "plan_id": "UNTIL-101",
+      "review_requirement": "",
+      "review_policy_reason": "",
+      "stage": "submitted"
+    }
+  }
+}

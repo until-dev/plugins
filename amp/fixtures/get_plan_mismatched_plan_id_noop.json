@@ -1,0 +1,36 @@
+{
+  "source": "test_mismatched_plan_id_returns_none",
+  "kind": "reduce",
+  "tool": "get_plan",
+  "prior": {
+    "plan_id": "UNTIL-101",
+    "stage": "submitted"
+  },
+  "toolInput": {
+    "id": "UNTIL-999"
+  },
+  "result": {
+    "id": "UNTIL-999",
+    "status": "submitted",
+    "author_principal_id": "author-principal",
+    "lifecycle": {
+      "stage": "submitted"
+    },
+    "review": {
+      "requirement": "required",
+      "policy_reason": "workspace_policy_required"
+    },
+    "reviews": [
+      {
+        "status": "approved",
+        "decided_at": "2026-08-25T12:00:00Z",
+        "type": "human",
+        "reviewer_principal_kind": "human",
+        "reviewer_principal_id": "reviewer-principal"
+      }
+    ]
+  },
+  "expected": {
+    "action": "noop"
+  }
+}

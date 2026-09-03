@@ -1,0 +1,26 @@
+{
+  "source": "test_gate_explains_unrecognized_requirement",
+  "kind": "gate",
+  "facts": {
+    "state": {
+      "plan_id": "UNTIL-101",
+      "stage": "submitted"
+    },
+    "skipped": false,
+    "untilMethodRoot": null,
+    "untilRoot": "/home/test-user/.until",
+    "stateDir": "/home/test-user/.until/state",
+    "skipPath": "/home/test-user/.until/state/skip-review-requirement-test",
+    "now": "2026-09-02T14:00:00.000Z"
+  },
+  "tool": {
+    "kind": "shell",
+    "command": "git commit -m test",
+    "cwd": "/tmp"
+  },
+  "expected": {
+    "allow": false,
+    "agentMessage": "UNTIL GATE: plan UNTIL-101 has no recognized saved review requirement. Implementation remains blocked. Confirm the current plan with get_plan; do not infer policy from reasons, membership, reviewer availability, or lifecycle fields, and do not request review. The denied operation is a stop condition. Never try an alternate write path, shell redirection, or another tool.",
+    "userMessage": "Until has not confirmed a recognized review requirement for plan UNTIL-101 \u2014 building stays paused."
+  }
+}

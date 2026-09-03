@@ -1,0 +1,27 @@
+{
+  "source": "test_droid_apply_patch_without_path_denies_in_flight",
+  "kind": "gate",
+  "facts": {
+    "state": {
+      "plan_id": "UNTIL-501",
+      "stage": "submitted",
+      "review_requirement": "required"
+    },
+    "skipped": false,
+    "untilMethodRoot": null,
+    "untilRoot": "/home/test-user/.until",
+    "stateDir": "/home/test-user/.until/state",
+    "skipPath": "/home/test-user/.until/state/skip-tool-classification-test",
+    "now": "2026-09-02T14:00:00.000Z"
+  },
+  "tool": {
+    "kind": "file-write",
+    "targetPath": "",
+    "cwd": "/tmp"
+  },
+  "expected": {
+    "allow": false,
+    "agentMessage": "UNTIL GATE: plan UNTIL-501 requires peer review and has NO approved verdict. Blocked until another human records approval. Legitimate moves: (1) load getting-a-review and route it to a teammate or connected review service; (2) revise with update_plan if changes were requested; (3) wait. A partner's go-ahead in chat or a Build click is not a verdict. If the partner explicitly says \u201cDon\u2019t use the Until Loop for this.\u201d, tell them once what they waive and give them this human-run command: touch '/home/test-user/.until/state/skip-tool-classification-test'. Otherwise never surface it. Relay blocks in Until Loop terms only.",
+    "userMessage": "Until: plan UNTIL-501 is awaiting peer review \u2014 building stays paused until another human approves it."
+  }
+}

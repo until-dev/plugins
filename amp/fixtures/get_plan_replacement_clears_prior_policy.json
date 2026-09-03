@@ -1,0 +1,32 @@
+{
+  "source": "test_replacement_state_does_not_retain_prior_review_policy",
+  "kind": "reduce",
+  "tool": "get_plan",
+  "prior": {
+    "plan_id": "UNTIL-101",
+    "stage": "approved",
+    "review_requirement": "required",
+    "review_policy_reason": "workspace_policy_required"
+  },
+  "toolInput": {
+    "id": "UNTIL-101"
+  },
+  "result": {
+    "id": "UNTIL-101",
+    "status": "submitted",
+    "lifecycle": {
+      "stage": "in_review"
+    },
+    "author_principal_id": "author-principal",
+    "reviews": []
+  },
+  "expected": {
+    "action": "write",
+    "state": {
+      "plan_id": "UNTIL-101",
+      "review_requirement": "",
+      "review_policy_reason": "",
+      "stage": "submitted"
+    }
+  }
+}

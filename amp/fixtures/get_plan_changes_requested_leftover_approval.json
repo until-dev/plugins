@@ -1,0 +1,42 @@
+{
+  "source": "test_leftover_approval_plus_changes_requested",
+  "kind": "reduce",
+  "tool": "get_plan",
+  "prior": {
+    "plan_id": "UNTIL-101",
+    "stage": "submitted"
+  },
+  "toolInput": {
+    "id": "UNTIL-101"
+  },
+  "result": {
+    "id": "UNTIL-101",
+    "status": "submitted",
+    "author_principal_id": "author-principal",
+    "lifecycle": {
+      "stage": "changes_requested"
+    },
+    "review": {
+      "requirement": "required",
+      "policy_reason": "workspace_policy_required"
+    },
+    "reviews": [
+      {
+        "status": "approved",
+        "decided_at": "2026-08-25T12:00:00Z",
+        "type": "human",
+        "reviewer_principal_kind": "human",
+        "reviewer_principal_id": "reviewer-principal"
+      }
+    ]
+  },
+  "expected": {
+    "action": "write",
+    "state": {
+      "plan_id": "UNTIL-101",
+      "stage": "changes_requested",
+      "review_requirement": "required",
+      "review_policy_reason": "workspace_policy_required"
+    }
+  }
+}

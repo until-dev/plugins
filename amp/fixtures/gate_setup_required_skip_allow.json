@@ -1,0 +1,23 @@
+{
+  "source": "test_human_skip_token_allows_product_edits",
+  "kind": "gate",
+  "facts": {
+    "state": {
+      "stage": "setup_required"
+    },
+    "skipped": true,
+    "untilMethodRoot": null,
+    "untilRoot": "/home/test-user/.until",
+    "stateDir": "/home/test-user/.until/state",
+    "skipPath": "/home/test-user/.until/state/skip-setup-required-waiver-test",
+    "now": "2026-09-02T14:00:00.000Z"
+  },
+  "tool": {
+    "kind": "file-write",
+    "targetPath": "/tmp/until-setup-required-product.py",
+    "cwd": "/tmp"
+  },
+  "expected": {
+    "allow": true
+  }
+}

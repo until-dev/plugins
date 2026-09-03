@@ -1,0 +1,24 @@
+{
+  "source": "test_droid_task_allows_with_skip_file",
+  "kind": "gate",
+  "facts": {
+    "state": {
+      "plan_id": "UNTIL-501",
+      "stage": "submitted",
+      "review_requirement": "required"
+    },
+    "skipped": true,
+    "untilMethodRoot": null,
+    "untilRoot": "/home/test-user/.until",
+    "stateDir": "/home/test-user/.until/state",
+    "skipPath": "/home/test-user/.until/state/skip-tool-classification-test",
+    "now": "2026-09-02T14:00:00.000Z"
+  },
+  "tool": {
+    "kind": "spawn",
+    "cwd": "/tmp"
+  },
+  "expected": {
+    "allow": true
+  }
+}

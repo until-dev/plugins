@@ -17,7 +17,8 @@
     "url": "git+https://github.com/until-dev/plugins.git"
   },
   "scripts": {
-    "validate:package": "node scripts/validate-package.mjs"
+    "validate:package": "node scripts/validate-package.mjs",
+    "test:amp": "tsc --noEmit -p tsconfig.json && bun test amp/"
   },
   "keywords": [
     "pi-package",
@@ -35,11 +36,13 @@
   "files": [
     ".opencode",
     ".pi",
+    "amp",
     "assets",
     "docs",
     "hooks/session_stage.py",
     "hooks/until-commit-gate",
     "hooks/until-track-state",
+    "index.ts",
     "skills",
     "LICENSE",
     "README.md",
@@ -64,5 +67,9 @@
     "@earendil-works/pi-coding-agent": {
       "optional": true
     }
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.14",
+    "typescript": "5.9.3"
   }
 }

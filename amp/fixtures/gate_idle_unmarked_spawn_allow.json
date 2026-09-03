@@ -1,0 +1,20 @@
+{
+  "source": "test_droid_task_allows_idle_unmarked_cwd",
+  "kind": "gate",
+  "facts": {
+    "state": null,
+    "skipped": false,
+    "untilMethodRoot": null,
+    "untilRoot": "/home/test-user/.until",
+    "stateDir": "/home/test-user/.until/state",
+    "skipPath": "/home/test-user/.until/state/skip-tool-classification-test",
+    "now": "2026-09-02T14:00:00.000Z"
+  },
+  "tool": {
+    "kind": "spawn",
+    "cwd": "/tmp"
+  },
+  "expected": {
+    "allow": true
+  }
+}

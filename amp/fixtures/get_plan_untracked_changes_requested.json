@@ -1,0 +1,26 @@
+{
+  "source": "test_untracked_changes_requested_seeds_gated_state",
+  "kind": "reduce",
+  "tool": "get_plan",
+  "prior": null,
+  "toolInput": {
+    "id": "UNTIL-101"
+  },
+  "result": {
+    "id": "UNTIL-101",
+    "status": "submitted",
+    "author_principal_id": "author-principal",
+    "lifecycle": {
+      "stage": "changes_requested"
+    }
+  },
+  "expected": {
+    "action": "write",
+    "state": {
+      "plan_id": "UNTIL-101",
+      "stage": "changes_requested",
+      "review_requirement": "",
+      "review_policy_reason": ""
+    }
+  }
+}

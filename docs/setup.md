@@ -6,9 +6,9 @@ before installation.
 
 ## Requirements
 
-- Claude Code, Codex, Factory Droid, OpenCode, Cursor or Pi
+- Claude Code, Codex, Factory Droid, OpenCode, Cursor, Pi or Amp
 - macOS or Linux
-- `python3` on `PATH` for the Claude Code, Factory Droid, OpenCode and Cursor enforcement hooks
+- `python3` on `PATH` for the Claude Code, Factory Droid, OpenCode and Cursor enforcement hooks (Amp enforces in TypeScript inside the plugin)
 
 Windows is not supported yet. The guidance may load, but the hooks that enforce
 the Until Rule are not reliably launched or validated there.
@@ -140,8 +140,10 @@ repository, the hooks remain inactive until Plan submission or source-control
 setup begins. A repository containing `.until-method` is default-closed, so the
 hooks enforce the Until Rule before a Plan exists.
 
-Claude Code, Codex, Factory Droid, OpenCode and Cursor expose different plugin and hook interfaces,
-so their exact enforcement coverage differs. The hooks guard supported coding
+Claude Code, Codex, Factory Droid, OpenCode, Cursor, Pi and Amp expose different plugin interfaces,
+so their exact enforcement coverage differs. Amp enforces in TypeScript inside the plugin;
+Claude Code, Factory Droid, OpenCode and Cursor use Python hooks where noted.
+Pi does not include deterministic enforcement. The guards cover supported coding
 actions; they are not a general-purpose security sandbox.
 
 ## Pi
@@ -179,6 +181,39 @@ available. Start a fresh Pi session so the Until startup guidance is loaded.
 Pi support includes the Until skills, startup guidance and MCP tools. It does
 not include the deterministic enforcement hooks used by Claude Code, Factory
 Droid, Cursor and OpenCode.
+
+## Amp
+
+Amp requires a directory plugin. Do not use `amp plugins add <url>` — that installs single-file plugins only and cannot register skills.
+
+**System plugin (CLI on this machine):**
+
+```bash
+git clone https://github.com/until-dev/plugins.git ~/.config/amp/plugins/until
+```
+
+Reload Amp (`plugins: reload` or restart). The directory name must be `until`.
+
+**Personal plugins (CLI and website):**
+
+```bash
+amp clone user-plugins
+git clone https://github.com/until-dev/plugins.git <that-repo>/until
+```
+
+Commit if Amp asks. Personal plugins sync to [ampcode.com](https://ampcode.com).
+
+On first load the plugin merges `until` into `amp.mcpServers` pointing at `https://run.until.dev/mcp` unless you already configured Until. Amp then lists that server as **awaiting approval** until you run `amp mcp approve until` (or approve it in Settings). Until tools do not appear in the first thread before that approval. After approval, `amp mcp doctor` should show Until connected (39 tools in the 2026-09-02 CLI check). Complete OAuth when prompted.
+
+**Verify:** `amp plugins list` shows `until`; after `amp mcp approve until`, `amp mcp doctor` shows `until` connected; a new thread includes `until:using-until bootstrap for amp` as a visible user message (Amp has no hidden plugin context).
+
+**Update:** `git -C ~/.config/amp/plugins/until pull` or `git -C <user-plugins>/until pull`, then reload.
+
+**Uninstall:** delete the `until` directory; remove `amp.mcpServers.until` if added by the plugin; reload.
+
+**MCP recovery:** Settings → MCP → add `https://run.until.dev/mcp` (website), or `amp mcp add until https://run.until.dev/mcp` (CLI).
+
+Orbs are not supported.
 
 ## Source control
 
@@ -226,6 +261,14 @@ pi update npm:pi-until-loop
 Git tags are immutable. To move a Git install to a later Until release, remove
 this tagged source and install the newer tagged source.
 
+For Amp:
+
+```bash
+git -C ~/.config/amp/plugins/until pull
+```
+
+Or `git -C <user-plugins>/until pull`, then reload Amp.
+
 For Cursor, update the clone:
 
 ```bash
@@ -270,5 +313,8 @@ pi remove git:github.com/until-dev/plugins@v0.2.5
 
 For a local pre-release installation, pass the same absolute plugin path to
 `pi remove`.
+
+For Amp, delete `~/.config/amp/plugins/until` or `<user-plugins>/until`, remove
+`amp.mcpServers.until` if the plugin added it, and reload Amp.
 
 Next: [Run your first Until Loop](first-until-loop.md).

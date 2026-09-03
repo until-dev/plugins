@@ -1,0 +1,17 @@
+{
+  "source": "test_submit_plan_setup_required_records_stage_without_plan_id",
+  "kind": "reduce",
+  "tool": "submit_plan",
+  "prior": null,
+  "toolInput": null,
+  "result": {
+    "status": "source_control_setup_required",
+    "setup_url": "https://example.test/setup"
+  },
+  "expected": {
+    "action": "write",
+    "state": {
+      "stage": "setup_required"
+    }
+  }
+}

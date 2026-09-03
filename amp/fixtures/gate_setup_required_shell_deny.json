@@ -1,0 +1,25 @@
+{
+  "source": "test_setup_required_denies_product_edits_without_skip",
+  "kind": "gate",
+  "facts": {
+    "state": {
+      "stage": "setup_required"
+    },
+    "skipped": false,
+    "untilMethodRoot": null,
+    "untilRoot": "/home/test-user/.until",
+    "stateDir": "/home/test-user/.until/state",
+    "skipPath": "/home/test-user/.until/state/skip-setup-required-waiver-test",
+    "now": "2026-09-02T14:00:00.000Z"
+  },
+  "tool": {
+    "kind": "shell",
+    "command": "git commit -m test",
+    "cwd": "/tmp"
+  },
+  "expected": {
+    "allow": false,
+    "agentMessage": "UNTIL GATE: repository access setup is required and no plan was submitted. Stop before implementation. Present the setup link from the submit_plan response, wait for your partner to confirm setup, then retry submission. Plan acceptance or an implementation request does not waive this blocker. If the partner explicitly says \u201cDon\u2019t use the Until Loop for this.\u201d, tell them once what they waive and give them this human-run command: touch '/home/test-user/.until/state/skip-setup-required-waiver-test'. Then stop until your partner confirms they ran that command. A missing skip file still denies implementation. Do not call submit_plan again for this change. Otherwise never surface the command. Relay blocks in Until Loop terms only. The denied operation is a stop condition. Never try an alternate write path, shell redirection, or another tool.",
+    "userMessage": "Until still needs repository access before this plan can be submitted. Complete setup, then send continue \u2014 or say \u201cDon\u2019t use the Until Loop for this.\u201d"
+  }
+}

@@ -6,7 +6,7 @@ Until moves the important decisions into the Plan before a coding agent writes a
 
 For individual developers and teams whose agents can produce code faster than they can confidently review it.
 
-This plugin connects Cursor, Claude Code, Codex, Factory Droid, OpenCode and Pi to Until, guiding the agent through the Until Loop.
+This plugin connects Cursor, Claude Code, Codex, Factory Droid, OpenCode, Pi and Amp to Until, guiding the agent through the Until Loop.
 
 The open-source plugin runs alongside your coding agent. The hosted Until workspace stores Plans and, once you connect source control, links them to pull requests and runs Plan checks.
 
@@ -76,9 +76,9 @@ They are written in Markdown and kept in git, so you can inspect and change them
 
 ### Requirements
 
-- Cursor, Claude Code, Codex, Factory Droid, OpenCode or Pi
+- Cursor, Claude Code, Codex, Factory Droid, OpenCode, Pi or Amp
 - macOS or Linux
-- `python3` on `PATH` for the Claude Code, Cursor, Factory Droid and OpenCode enforcement hooks
+- `python3` on `PATH` for the Claude Code, Cursor, Factory Droid and OpenCode enforcement hooks (Amp uses TypeScript enforcement in the plugin; no Python required)
 
 Windows is not supported yet. The skills that teach the Until Loop may load, but the hooks that track Plan state and enforce the Until Rule are not reliably launched or validated there. Nothing on Windows will stop an agent from writing code without a Plan.
 
@@ -205,6 +205,39 @@ This first Pi release supports the Until workflow and MCP tools. Pi does not
 load the deterministic enforcement hooks used by Claude Code, Factory Droid,
 Cursor and OpenCode.
 
+### Amp
+
+Amp requires a **directory plugin** (`index.ts` plus `skills/`). Do not use `amp plugins add <url>` — that path is for single-file plugins only.
+
+**Amp CLI (system plugin):**
+
+```bash
+git clone https://github.com/until-dev/plugins.git ~/.config/amp/plugins/until
+```
+
+Reload Amp (`plugins: reload` or restart). The folder name must be `until` so skills appear as `until:using-until`, and so on.
+
+**Amp CLI and website (personal plugins):**
+
+```bash
+amp clone user-plugins
+git clone https://github.com/until-dev/plugins.git <that-repo>/until
+```
+
+Commit in that repo if Amp asks. Personal plugins apply on [ampcode.com](https://ampcode.com) as well as the CLI.
+
+On first load the plugin registers Until MCP at `https://run.until.dev/mcp` if you do not already have an `until` server configured. Amp lists it as **awaiting approval** until `amp mcp approve until` (or Settings). Until tools do not appear in the first thread before that approval. After approval, `amp mcp doctor` should show Until connected. Complete OAuth when prompted (localhost on CLI; `https://ampcode.com/auth/mcp/callback` on the website).
+
+**Verify:** `amp plugins list` shows `until`; after MCP approval, `amp mcp doctor` shows `until` connected; a new thread contains the bootstrap marker `until:using-until bootstrap for amp` as a visible user message. Amp has no hidden plugin context.
+
+**Update:** `git -C ~/.config/amp/plugins/until pull` (system) or `git -C <user-plugins>/until pull`, then reload.
+
+**Uninstall:** delete the `until` plugin directory; remove `amp.mcpServers.until` if the plugin added it; reload.
+
+If MCP is missing after install, add `https://run.until.dev/mcp` under Amp Settings → MCP (website) or run `amp mcp add until https://run.until.dev/mcp` (CLI). See [Troubleshooting](docs/troubleshooting.md#until-mcp-is-not-connected).
+
+Orbs are not supported.
+
 ### Verify the installation
 
 Start a fresh conversation and ask your agent to implement a small change.
@@ -243,6 +276,14 @@ pi update npm:pi-until-loop
 Git tags are immutable. To move a Git install to a later Until release, remove
 this tagged source and install the newer tagged source.
 
+For Amp, pull the plugin directory and reload:
+
+```bash
+git -C ~/.config/amp/plugins/until pull
+```
+
+Or, for personal plugins: `git -C <user-plugins>/until pull`, then reload Amp.
+
 ### Uninstalling
 
 On Claude Code, remove the plugin through the plugin manager.
@@ -272,6 +313,8 @@ A Git install is removed with the same source you used to install it:
 ```bash
 pi remove git:github.com/until-dev/plugins@v0.2.5
 ```
+
+On Amp, delete the `until` plugin directory (`~/.config/amp/plugins/until` or `<user-plugins>/until`). Remove `amp.mcpServers.until` from Amp settings if the plugin added it. Reload Amp.
 
 ## Bypassing the Until Loop
 

@@ -6,7 +6,7 @@ the failures you are most likely to meet during setup and delivery.
 
 ## Start here
 
-1. [Set up Until](setup.md) in your coding agent (Claude Code, Codex, Factory Droid, OpenCode, Cursor or Pi).
+1. [Set up Until](setup.md) in your coding agent (Claude Code, Codex, Factory Droid, OpenCode, Cursor, Pi or Amp).
 2. [Run your first Until Loop](first-until-loop.md).
 3. Read [Plan approvals](plan-approvals.md) if another person needs to approve
    Plans before implementation.

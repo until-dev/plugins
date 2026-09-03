@@ -1,0 +1,24 @@
+{
+  "source": "test_claude_read_allows_in_flight",
+  "kind": "gate",
+  "facts": {
+    "state": {
+      "plan_id": "UNTIL-501",
+      "stage": "submitted",
+      "review_requirement": "required"
+    },
+    "skipped": false,
+    "untilMethodRoot": null,
+    "untilRoot": "/home/test-user/.until",
+    "stateDir": "/home/test-user/.until/state",
+    "skipPath": "/home/test-user/.until/state/skip-tool-classification-test",
+    "now": "2026-09-02T14:00:00.000Z"
+  },
+  "tool": {
+    "kind": "other",
+    "cwd": "/tmp"
+  },
+  "expected": {
+    "allow": true
+  }
+}

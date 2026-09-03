@@ -1,0 +1,39 @@
+{
+  "source": "test_untracked_changes_requested_with_leftover_approval_still_seeds",
+  "kind": "reduce",
+  "tool": "get_plan",
+  "prior": null,
+  "toolInput": {
+    "id": "UNTIL-101"
+  },
+  "result": {
+    "id": "UNTIL-101",
+    "status": "submitted",
+    "lifecycle": {
+      "stage": "changes_requested"
+    },
+    "author_principal_id": "author-principal",
+    "review": {
+      "requirement": "required",
+      "policy_reason": "workspace_policy_required"
+    },
+    "reviews": [
+      {
+        "status": "approved",
+        "decided_at": "2026-08-25T12:00:00Z",
+        "type": "human",
+        "reviewer_principal_kind": "human",
+        "reviewer_principal_id": "reviewer-principal"
+      }
+    ]
+  },
+  "expected": {
+    "action": "write",
+    "state": {
+      "plan_id": "UNTIL-101",
+      "review_requirement": "required",
+      "review_policy_reason": "workspace_policy_required",
+      "stage": "changes_requested"
+    }
+  }
+}

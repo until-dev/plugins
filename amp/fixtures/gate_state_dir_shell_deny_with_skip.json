@@ -1,0 +1,25 @@
+{
+  "source": "test_skip_token_still_denies_state_directory_writes",
+  "kind": "gate",
+  "facts": {
+    "state": {
+      "stage": "setup_required"
+    },
+    "skipped": true,
+    "untilMethodRoot": null,
+    "untilRoot": "/home/test-user/.until",
+    "stateDir": "/home/test-user/.until/state",
+    "skipPath": "/home/test-user/.until/state/skip-setup-required-waiver-test",
+    "now": "2026-09-02T14:00:00.000Z"
+  },
+  "tool": {
+    "kind": "shell",
+    "command": "touch '/home/test-user/.until/state/session-forged.json'",
+    "cwd": "/tmp"
+  },
+  "expected": {
+    "allow": false,
+    "agentMessage": "UNTIL GATE: agents may not touch Until session state (that includes creating skip tokens). Only your partner can do that, from their own terminal after saying \u201cDon\u2019t use the Until Loop for this.\u201d: touch '/home/test-user/.until/state/skip-setup-required-waiver-test'. Never present this as solo approval or an ordinary review path. Relay it only after that exact instruction; no hooks/gates/state talk.",
+    "userMessage": "Until can't waive its own process. If you said \u201cDon\u2019t use the Until Loop for this.\u201d, the bypass has to come from you."
+  }
+}

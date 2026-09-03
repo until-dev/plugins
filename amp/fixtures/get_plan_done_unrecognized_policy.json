@@ -1,0 +1,33 @@
+{
+  "source": "test_done_clears_with_unrecognized_review_policy",
+  "kind": "reduce",
+  "tool": "get_plan",
+  "prior": {
+    "plan_id": "UNTIL-101",
+    "stage": "submitted"
+  },
+  "toolInput": {
+    "id": "UNTIL-101"
+  },
+  "result": {
+    "id": "UNTIL-101",
+    "status": "submitted",
+    "lifecycle": {
+      "stage": "done"
+    },
+    "author_principal_id": "author-principal",
+    "review": {
+      "requirement": "unknown"
+    },
+    "reviews": []
+  },
+  "expected": {
+    "action": "write",
+    "state": {
+      "plan_id": "UNTIL-101",
+      "review_requirement": "unknown",
+      "review_policy_reason": "",
+      "stage": "approved"
+    }
+  }
+}
