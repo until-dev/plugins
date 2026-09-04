@@ -96,7 +96,9 @@ The native hook file calls the same scripts as Claude Code and Factory Droid.
 The main session is enforced on `run_command` (shell) and `write_to_file`,
 `replace_file_content`, and `multi_replace_file_content` (files).
 `invoke_subagent` is denied while Until is enforcing, the same way Droid
-denies `Task`. Confirm `/hooks` shows the Until PreToolUse gate.
+denies `Task`. `/hooks` is the project hook editor and does not list
+plugin hooks. Confirm the install with `agy plugin list`, then look for
+`commit-gate fired` in `~/.until/hooks.log` after a write or shell call.
 
 If `python3` cannot run the hook, enforcement fails open. Inspect
 `~/.until/hooks.log` after a supported tool call.

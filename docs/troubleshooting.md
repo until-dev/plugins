@@ -66,6 +66,8 @@ Do not include OAuth tokens or other credentials in a support issue.
 
 **Symptom:** Until skills load but MCP tools (`submit_plan`, `get_plan`, …) are missing, or `amp mcp doctor` does not list `until`.
 
+**Try (Antigravity CLI):** If `agy` logs `MCP server connection closed unexpectedly for until` while sending `notifications/roots/list_changed` and then skips the `mcp_servers` prompt section, Until's Streamable HTTP handler rejected a JSON-RPC notification. That is a until-backend fix, not a plugin reinstall. After the backend is deployed, start a fresh `agy` session.
+
 **Try (Amp):**
 
 1. Run `amp plugins list` and confirm `until` is present.
@@ -211,13 +213,16 @@ Factory Droid on Windows is not supported for enforcement hooks.
 
 ### Antigravity CLI enforcement hooks do not run
 
-**Symptom:** Until skills load, but MCP tools are missing, `/hooks` does not
-show the Until PreToolUse gate, or the agent can edit files and run shell
-while a Plan is in flight.
+**Symptom:** Until skills load, but MCP tools are missing, `agy` logs
+`Failed to parse hooks for plugin until` / `command hook must specify
+'command'`, or the agent can edit files and run shell while a Plan is in
+flight. `/hooks` is the project hook editor and does not list plugin
+hooks — an empty project list there is not a failed Until install.
 
 **Likely cause:** `agy plugin install` imported Claude Code instead of the
-native package, `agy` was not restarted, `python3` is missing from `PATH`, or
-the hook failed open.
+native package, PreInvocation handlers were wrapped like tool hooks, `agy`
+was not restarted, `python3` is missing from `PATH`, or the hook failed
+open.
 
 **Try:**
 
@@ -225,13 +230,15 @@ the hook failed open.
    `plugin.json`, `mcp_config.json`, and `hooks.json`):
 
    ```bash
+   agy plugin uninstall until
    agy plugin install /absolute/path/to/workspace/plugins
    ```
 
 2. Run `agy plugin list` and confirm Until is a native plugin, not a
    Claude Code import. Skills without Until tools is a failed install.
-3. Restart `agy` and start a fresh session. Run `/mcp` to finish sign-in,
-   then `/hooks` to confirm the Until PreToolUse gate is active.
+3. Restart `agy` and start a fresh session. Run `/mcp` to finish sign-in.
+   After a write or `run_command`, confirm `~/.until/hooks.log` has a
+   `commit-gate fired` line.
 4. Confirm `python3` is available where `agy` launches hooks. If it is not,
    the commit gate fails open and allows the tool rather than blocking the
    session.

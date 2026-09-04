@@ -127,9 +127,10 @@ agy plugin install /absolute/path/to/until-plugins
 For a published checkout, point `agy plugin install` at the Until plugin root
 (the directory that contains `plugin.json`, `mcp_config.json`, and `hooks.json`).
 Restart `agy` and start a fresh session. Run `/mcp` (or the TUI MCP auth flow)
-to finish sign-in. After install, Until tools must load and `/hooks` must show
-the Until PreToolUse gate. Skills without MCP tools or hooks is a failed
-install.
+to finish sign-in. After install, Until tools must load. `/hooks` is the
+project hook editor and does not list plugin hooks. Confirm the install with
+`agy plugin list`, then look for `commit-gate fired` in `~/.until/hooks.log`
+after a write or shell call. Skills without Until tools is a failed install.
 
 The native hook file calls the same session-start, prompt-reminder, commit-gate,
 and state-tracking scripts as Claude Code and Factory Droid. The gate covers

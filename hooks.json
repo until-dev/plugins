@@ -28,24 +28,16 @@
   "until-session-start": {
     "PreInvocation": [
       {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh -c 'r=\"$HOME/.gemini/antigravity-cli/plugins/until\"; [ -x \"$r/hooks/agy-plugin-cmd\" ] || r=\"$HOME/.gemini/config/plugins/until\"; exec \"$r/hooks/agy-plugin-cmd\" session-start'"
-          }
-        ]
+        "type": "command",
+        "command": "sh -c 'r=\"$HOME/.gemini/antigravity-cli/plugins/until\"; [ -x \"$r/hooks/agy-plugin-cmd\" ] || r=\"$HOME/.gemini/config/plugins/until\"; exec \"$r/hooks/agy-plugin-cmd\" session-start'"
       }
     ]
   },
   "until-prompt-reminder": {
     "PreInvocation": [
       {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh -c 'r=\"$HOME/.gemini/antigravity-cli/plugins/until\"; [ -x \"$r/hooks/agy-plugin-cmd\" ] || r=\"$HOME/.gemini/config/plugins/until\"; exec \"$r/hooks/agy-plugin-cmd\" prompt-reminder'"
-          }
-        ]
+        "type": "command",
+        "command": "sh -c 'r=\"$HOME/.gemini/antigravity-cli/plugins/until\"; [ -x \"$r/hooks/agy-plugin-cmd\" ] || r=\"$HOME/.gemini/config/plugins/until\"; exec \"$r/hooks/agy-plugin-cmd\" prompt-reminder'"
       }
     ]
   }
