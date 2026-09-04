@@ -24,7 +24,7 @@ directory, or the editor was not restarted.
 2. For Cursor, confirm the local plugin or symlink still points to the cloned
    repository.
 3. Restart Claude Code or OpenCode, reload Cursor with **Developer: Reload
-   Window**, restart Factory Droid, or start a fresh Pi session.
+   Window**, restart Factory Droid, restart Antigravity CLI (`agy`), or start a fresh Pi session.
 4. Start a new conversation and ask the agent to implement a small change.
    Until should begin by shaping the change and drafting a Plan before writing
    code.
@@ -45,16 +45,19 @@ before the workspace was created or selected.
    authenticated.
 4. In Factory Droid, complete MCP authentication when Until prompts during a
    fresh session.
-5. In Pi, run `/mcp` to confirm the Until server is listed, then run
+5. In Antigravity CLI, run `/mcp` (or the TUI MCP auth flow) and complete
+   browser sign-in. After native install, the Until callback
+   `https://antigravity.google/oauth-callback` is allowed.
+6. In Pi, run `/mcp` to confirm the Until server is listed, then run
    `/mcp-auth until` and complete the browser flow.
-6. In Amp, run `amp mcp doctor`. On first load the Until server is often **awaiting approval** even after the plugin registered it — run `amp mcp approve until`, then check again. If `until` is missing entirely, add
+7. In Amp, run `amp mcp doctor`. On first load the Until server is often **awaiting approval** even after the plugin registered it — run `amp mcp approve until`, then check again. If `until` is missing entirely, add
    `https://run.until.dev/mcp` under Settings → MCP (website) or run
    `amp mcp add until https://run.until.dev/mcp` (CLI). Reload Amp if tools
    still do not appear after approval and OAuth.
-7. Return to the same conversation after the browser flow.
-8. If Until presents a setup link, use that exact link rather than guessing a
+8. Return to the same conversation after the browser flow.
+9. If Until presents a setup link, use that exact link rather than guessing a
    workspace URL.
-9. Start a fresh conversation after authentication if the existing session
+10. Start a fresh conversation after authentication if the existing session
    still cannot see the workspace.
 
 Do not include OAuth tokens or other credentials in a support issue.
@@ -77,7 +80,7 @@ Do not include OAuth tokens or other credentials in a support issue.
 
 ### The agent starts implementing before there is a Plan
 
-In Claude Code, Cursor, Factory Droid and OpenCode, deterministic enforcement is inactive in
+In Claude Code, Cursor, Factory Droid, Antigravity CLI and OpenCode, deterministic enforcement is inactive in
 an ordinary repository before Plan submission begins. Pre-Plan behaviour
 depends on the initial Until guidance loading correctly.
 
@@ -90,7 +93,7 @@ depends on the initial Until guidance loading correctly.
 3. If the repository contains a `.until-method` marker, continue with
    [Until enforcement hooks do not run](#until-enforcement-hooks-do-not-run).
 
-In Claude Code, Cursor, Factory Droid and OpenCode, a repository with `.until-method` is
+In Claude Code, Cursor, Factory Droid, Antigravity CLI and OpenCode, a repository with `.until-method` is
 default-closed: supported implementation changes are blocked before a Plan has
 been cleared. Repositories without that marker are protected after Plan
 submission or source-control setup begins, but not before.
@@ -205,6 +208,39 @@ as shell and file tools. An idle session in an unmarked repository may still
 use `Task`.
 
 Factory Droid on Windows is not supported for enforcement hooks.
+
+### Antigravity CLI enforcement hooks do not run
+
+**Symptom:** Until skills load, but MCP tools are missing, `/hooks` does not
+show the Until PreToolUse gate, or the agent can edit files and run shell
+while a Plan is in flight.
+
+**Likely cause:** `agy plugin install` imported Claude Code instead of the
+native package, `agy` was not restarted, `python3` is missing from `PATH`, or
+the hook failed open.
+
+**Try:**
+
+1. Confirm you installed the Until plugin root (the directory that contains
+   `plugin.json`, `mcp_config.json`, and `hooks.json`):
+
+   ```bash
+   agy plugin install /absolute/path/to/workspace/plugins
+   ```
+
+2. Run `agy plugin list` and confirm Until is a native plugin, not a
+   Claude Code import. Skills without Until tools is a failed install.
+3. Restart `agy` and start a fresh session. Run `/mcp` to finish sign-in,
+   then `/hooks` to confirm the Until PreToolUse gate is active.
+4. Confirm `python3` is available where `agy` launches hooks. If it is not,
+   the commit gate fails open and allows the tool rather than blocking the
+   session.
+5. Inspect `~/.until/hooks.log` for recent `commit-gate fired` lines after a
+   supported tool call (`run_command`, `write_to_file`,
+   `replace_file_content`, `multi_replace_file_content`, `invoke_subagent`,
+   or `create_file` / `edit_file` aliases).
+
+Windows is not supported for Antigravity CLI enforcement hooks.
 
 ## Expected pauses
 
@@ -412,9 +448,12 @@ tool is unavailable. See [Custom Loop integrations](custom-loops.md#integrations
    --force`.
 5. For Factory Droid, confirm the plugin is still installed with user scope,
    then restart Droid.
-6. For Cursor, verify the existing user-hook entries and paths using
+6. For Antigravity CLI, reinstall from the Until plugin root with
+   `agy plugin install`, confirm `agy plugin list` shows a native plugin,
+   then restart `agy`.
+7. For Cursor, verify the existing user-hook entries and paths using
    [Until enforcement hooks do not run](#until-enforcement-hooks-do-not-run).
-7. For Pi, run `pi list` to confirm the installed source. The Git installation
+8. For Pi, run `pi list` to confirm the installed source. The Git installation
    is pinned to an immutable tag, so `pi update --extensions` only refreshes
    that release. To move to a later release, remove the tagged source and
    install the newer tagged source as described in [Set up Until](setup.md).
@@ -426,7 +465,7 @@ is unnecessary and does not rewrite existing entries.
 
 Include:
 
-- Claude Code, Codex, Factory Droid, Cursor, OpenCode, Pi or Amp and its version;
+- Claude Code, Codex, Factory Droid, Antigravity CLI, Cursor, OpenCode, Pi or Amp and its version;
 - operating system;
 - Until plugin version or commit;
 - the step and documentation section followed;

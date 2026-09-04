@@ -93,6 +93,12 @@ def parse_result(payload):
     occasionally a string.
     """
     raw = payload.get("result_json")
+    if raw is None:
+        tool_call = payload.get("toolCall")
+        if isinstance(tool_call, dict):
+            raw = tool_call.get("result")
+    if raw is None:
+        raw = payload.get("result")
     if raw is not None:
         if isinstance(raw, str):
             try:
@@ -122,6 +128,10 @@ def parse_result(payload):
 def parse_tool_input(payload):
     """Extract MCP tool input from either harness without guessing on errors."""
     data = payload.get("tool_input")
+    if data is None:
+        tool_call = payload.get("toolCall")
+        if isinstance(tool_call, dict):
+            data = tool_call.get("args")
     if isinstance(data, str):
         try:
             data = json.loads(data)
@@ -252,9 +262,19 @@ def main():
     except Exception:
         return
 
-    tool = (payload.get("tool_name") or "").lower()
-    # Cursor sends conversation_id; Claude Code sends session_id.
-    convo = payload.get("conversation_id") or payload.get("session_id") or "unknown"
+    tool_call = payload.get("toolCall")
+    tool_name = payload.get("tool_name")
+    if not tool_name and isinstance(tool_call, dict):
+        tool_name = tool_call.get("name")
+    tool = (tool_name or "").lower()
+    # Cursor sends conversation_id; Claude Code sends session_id;
+    # Antigravity sends conversationId.
+    convo = (
+        payload.get("conversationId")
+        or payload.get("conversation_id")
+        or payload.get("session_id")
+        or "unknown"
+    )
     state_path = os.path.join(STATE_DIR, f"session-{convo}.json")
 
     result = parse_result(payload)

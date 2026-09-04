@@ -16,6 +16,25 @@ is_claude_payload() {
   printf '%s' "$payload" | tr -d '\n' | grep -q '"hook_event_name"[[:space:]]*:[[:space:]]*"PreToolUse"'
 }
 
+is_cursor_payload() {
+  flat=$(printf '%s' "$payload" | tr -d '\n')
+  printf '%s' "$flat" | grep -q '"hook_event_name"[[:space:]]*:[[:space:]]*"preToolUse"' && return 0
+  printf '%s' "$flat" | grep -q '"hook_event_name"[[:space:]]*:[[:space:]]*"beforeShellExecution"' && return 0
+  printf '%s' "$flat" | grep -q '"hook_event_name"[[:space:]]*:[[:space:]]*"afterMCPExecution"' && return 0
+  return 1
+}
+
+# Official Antigravity PreToolUse is conversationId + a toolCall object.
+# Do not treat a quoted "toolCall" inside Claude/Cursor tool_input as agy —
+# that misread used to reject a real deny and fail-open as allow.
+is_agy_payload() {
+  is_claude_payload && return 1
+  is_cursor_payload && return 1
+  flat=$(printf '%s' "$payload" | tr -d '\n')
+  printf '%s' "$flat" | grep -q '"conversationId"[[:space:]]*:' || return 1
+  printf '%s' "$flat" | grep -q '"toolCall"[[:space:]]*:[[:space:]]*{'
+}
+
 # Validate allow/deny JSON in awk so a second python3 process cannot
 # discard a real policy decision or accept malformed stdout.
 GATE_JSON_AWK=$(cat <<'GATE_JSON_AWK'
@@ -111,7 +130,7 @@ function parse_object(store,    key) {
     skip_ws()
     if (store == "top" && key == "hookSpecificOutput" && substr(s, i, 1) == "{") {
       if (!parse_object("hso")) return 0
-    } else if ((store == "top" && (key == "permission" || key == "agent_message" || key == "user_message" || key == "systemMessage")) || (store == "hso" && (key == "hookEventName" || key == "permissionDecision" || key == "permissionDecisionReason"))) {
+    } else if ((store == "top" && (key == "permission" || key == "agent_message" || key == "user_message" || key == "systemMessage" || key == "decision" || key == "reason")) || (store == "hso" && (key == "hookEventName" || key == "permissionDecision" || key == "permissionDecisionReason"))) {
       if (substr(s, i, 1) != "\"") return 0
       if (!parse_string()) return 0
       if (store == "top") topv[key] = strval
@@ -162,6 +181,13 @@ END {
     if (hsov["permissionDecision"] != "allow" && hsov["permissionDecision"] != "deny") exit 1
     exit 0
   }
+  if (expected == "agy") {
+    if (!("decision" in top)) exit 1
+    if ("hookSpecificOutput" in top) exit 1
+    if ("permission" in top) exit 1
+    if (topv["decision"] != "allow" && topv["decision"] != "deny") exit 1
+    exit 0
+  }
   if (!("permission" in top)) exit 1
   if ("hookSpecificOutput" in top) exit 1
   if (topv["permission"] != "allow" && topv["permission"] != "deny") exit 1
@@ -175,6 +201,10 @@ valid_gate_output() {
   [ -n "$out" ] || return 1
   if is_claude_payload; then
     expected=claude
+  elif is_cursor_payload; then
+    expected=cursor
+  elif is_agy_payload; then
+    expected=agy
   else
     expected=cursor
   fi
@@ -184,6 +214,8 @@ valid_gate_output() {
 emit_fail_open() {
   if is_claude_payload; then
     printf '%s\n' "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\",\"permissionDecisionReason\":\"$GATE_DOWN_MSG\"},\"systemMessage\":\"$GATE_DOWN_MSG\"}"
+  elif is_agy_payload; then
+    printf '%s\n' "{\"decision\":\"allow\",\"reason\":\"$GATE_DOWN_MSG\"}"
   else
     printf '%s\n' "{\"permission\":\"allow\",\"agent_message\":\"$GATE_DOWN_MSG\",\"user_message\":\"$GATE_DOWN_MSG\"}"
   fi
@@ -252,13 +284,31 @@ AGENT_URL_RE = re.compile(r"^https://cursor\.com/agents/bc-[A-Za-z0-9-]+$")
 REQUIRED_WAIVED = frozenset({"plan_review", "plan_check"})
 
 EDIT_TOOL_PAT = re.compile(
-    r"write|edit|str_?replace|multi_?edit|apply_?patch|search_replace|delete|notebook|create",
+    r"write|edit|str_?replace|multi_?edit|apply_?patch|search_replace|delete|notebook|create|replace_file",
     re.IGNORECASE,
 )
 APPLY_PATCH_PAT = re.compile(r"apply_?patch", re.IGNORECASE)
-SHELL_TOOL_NAMES = frozenset({"bash", "execute"})
-SPAWN_TOOL_NAMES = frozenset({"task"})
-PATH_KEYS = ("file_path", "path", "target_file", "absolute_path", "filePath", "target_notebook")
+SHELL_TOOL_NAMES = frozenset({"bash", "execute", "run_command"})
+SPAWN_TOOL_NAMES = frozenset({"task", "invoke_subagent"})
+AGY_FILE_TOOL_NAMES = frozenset(
+    {
+        "write_to_file",
+        "replace_file_content",
+        "multi_replace_file_content",
+        "create_file",
+        "edit_file",
+    }
+)
+PATH_KEYS = (
+    "file_path",
+    "path",
+    "target_file",
+    "absolute_path",
+    "filePath",
+    "target_notebook",
+    "TargetFile",
+    "AbsolutePath",
+)
 SHAPE_DOC_DIRS = {"plans", "design", "specs"}
 
 SHELL_SPLIT_PAT = re.compile(r"\s*(?:&&|\|\||;|\|)\s*")
@@ -305,12 +355,18 @@ def log(msg):
 # Which harness are we answering? Cursor events are camelCase
 # (beforeShellExecution/preToolUse) and expect {"permission": ...};
 # Claude Code sends PreToolUse and expects hookSpecificOutput with
-# permissionDecision. Set once in main().
+# permissionDecision; Antigravity expects top-level decision.
+# Set once in main().
 CLAUDE_OUTPUT = False
+ANTIGRAVITY_OUTPUT = False
 
 
 def respond(permission, agent_msg=None, user_msg=None):
-    if CLAUDE_OUTPUT:
+    if ANTIGRAVITY_OUTPUT:
+        out = {"decision": permission}
+        if agent_msg:
+            out["reason"] = agent_msg
+    elif CLAUDE_OUTPUT:
         out = {
             "hookSpecificOutput": {
                 "hookEventName": "PreToolUse",
@@ -586,13 +642,13 @@ def classify_tool(event, tool_name):
     if event == "beforeShellExecution":
         return "shell"
     if event in ("preToolUse", "PreToolUse"):
+        name = (tool_name or "").lower()
         if event == "PreToolUse":
-            name = (tool_name or "").lower()
             if name in SHELL_TOOL_NAMES:
                 return "shell"
             if name in SPAWN_TOOL_NAMES:
                 return "spawn"
-        if EDIT_TOOL_PAT.search(tool_name or ""):
+        if name in AGY_FILE_TOOL_NAMES or EDIT_TOOL_PAT.search(tool_name or ""):
             return "file-write"
         return "other"
     return "other"
@@ -607,12 +663,45 @@ def main():
         allow()
 
     # Cursor sends conversation_id + camelCase events; Claude Code and Factory
-    # Droid send session_id + PreToolUse. Classify each host's tool names onto
-    # shell, file-write, or spawn; other tools allow early.
+    # Droid send session_id + PreToolUse; Antigravity sends toolCall +
+    # conversationId. Classify each host's tool names onto shell, file-write,
+    # or spawn; other tools allow early.
     global CLAUDE_OUTPUT
-    convo = payload.get("conversation_id") or payload.get("session_id") or "unknown"
+    global ANTIGRAVITY_OUTPUT
+    convo = (
+        payload.get("conversationId")
+        or payload.get("conversation_id")
+        or payload.get("session_id")
+        or "unknown"
+    )
     event = payload.get("hook_event_name") or ""
-    if event == "PreToolUse":
+    tool_call = payload.get("toolCall")
+    if isinstance(tool_call, dict) and isinstance(tool_call.get("name"), str):
+        ANTIGRAVITY_OUTPUT = True
+        CLAUDE_OUTPUT = False
+        event = "PreToolUse"
+        tool_name = tool_call.get("name") or ""
+        args = tool_call.get("args") if isinstance(tool_call.get("args"), dict) else {}
+        cwd = args.get("Cwd") or args.get("cwd") or ""
+        if not cwd:
+            paths = payload.get("workspacePaths")
+            if isinstance(paths, list) and paths and isinstance(paths[0], str):
+                cwd = paths[0]
+        payload = dict(payload, tool_name=tool_name, tool_input=args, cwd=cwd)
+        kind = classify_tool(event, tool_name)
+        if kind == "shell":
+            event = "beforeShellExecution"
+            payload = dict(
+                payload,
+                command=args.get("CommandLine") or args.get("command") or "",
+            )
+        elif kind == "spawn":
+            event = "spawn"
+        elif kind == "file-write":
+            event = "preToolUse"
+        else:
+            allow()
+    elif event == "PreToolUse":
         CLAUDE_OUTPUT = True
         tool_name = payload.get("tool_name") or ""
         kind = classify_tool(event, tool_name)

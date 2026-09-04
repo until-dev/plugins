@@ -2,13 +2,29 @@
 # UserPromptSubmit hook (Claude Code) — re-asserts the Until method on every
 # user turn, so it survives long sessions and compaction. Plain stdout on
 # exit 0 is appended to the model's context for UserPromptSubmit.
+# Antigravity PreInvocation uses injectSteps; only fire on invocationNum 0.
 #
 # Keep this payload tiny: it rides along with EVERY prompt.
 
 set -euo pipefail
 
-cat <<'EOF'
-<until-reminder>
+HOOK_PAYLOAD="$(cat 2>/dev/null || true)"
+flat_payload="$(printf '%s' "$HOOK_PAYLOAD" | tr -d '\n')"
+agy_invocation="$(printf '%s' "$flat_payload" \
+  | sed -n 's/.*"invocationNum"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' | head -n1)"
+is_agy=0
+if printf '%s' "$flat_payload" | grep -q '"conversationId"[[:space:]]*:' && \
+   printf '%s' "$flat_payload" | grep -q '"invocationNum"[[:space:]]*:'; then
+  is_agy=1
+fi
+# Only Antigravity PreInvocation is limited to invocationNum 0. A later
+# "invocationNum" in a Claude/Cursor prompt must not drop the reminder.
+if [ "$is_agy" = "1" ] && [ -n "$agy_invocation" ] && [ "$agy_invocation" != "0" ]; then
+  printf '%s\n' '{}'
+  exit 0
+fi
+
+reminder='<until-reminder>
 Classify the deliverable requested THIS turn before acting. Admin/tracker/copy
 (including Linear descriptions) → help directly. Shape-only → brainstorm,
 produce the artifact, STOP. Actual product/repository
@@ -17,14 +33,29 @@ implementing-a-plan, then checking-plan-differences; skip getting-a-review when 
 saved plan says peer review is not required. On a fresh implementation ask,
 brainstorming MUST be the first stage skill — never probe writing-a-good-plan
 first. Iron Rule: no
-implementation code before the plan upload is confirmed and Until's saved
-review policy clears it; review-required plans need another human's approved
+implementation code before the plan upload is confirmed and Until'\''s saved
+review policy clears it; review-required plans need another human'\''s approved
 verdict.
 When clearance first appears, report implementation ready and STOP; only a
 fresh post-clearance “implement now” instruction starts edits. Build is neither
 submission nor implementation consent, and a denied edit is a stop condition
 rather than permission to try another tool.
-</until-reminder>
-EOF
+</until-reminder>'
 
+if [ "$is_agy" = "1" ]; then
+  escape_for_json() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
+  }
+  printf '{\n  "injectSteps": [\n    {\n      "ephemeralMessage": "%s"\n    }\n  ]\n}\n' \
+    "$(escape_for_json "$reminder")"
+  exit 0
+fi
+
+printf '%s\n' "$reminder"
 exit 0

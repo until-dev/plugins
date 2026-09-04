@@ -1,0 +1,52 @@
+{
+  "until-commit-gate": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command|write_to_file|replace_file_content|multi_replace_file_content|create_file|edit_file|invoke_subagent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'r=\"$HOME/.gemini/antigravity-cli/plugins/until\"; [ -x \"$r/hooks/agy-plugin-cmd\" ] || r=\"$HOME/.gemini/config/plugins/until\"; exec \"$r/hooks/agy-plugin-cmd\" until-commit-gate'"
+          }
+        ]
+      }
+    ]
+  },
+  "until-track-state": {
+    "PostToolUse": [
+      {
+        "matcher": ".*submit_plan.*|.*update_plan.*|.*delete_plan.*|.*get_plan.*|.*request_review.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'r=\"$HOME/.gemini/antigravity-cli/plugins/until\"; [ -x \"$r/hooks/agy-plugin-cmd\" ] || r=\"$HOME/.gemini/config/plugins/until\"; exec \"$r/hooks/agy-plugin-cmd\" until-track-state'"
+          }
+        ]
+      }
+    ]
+  },
+  "until-session-start": {
+    "PreInvocation": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'r=\"$HOME/.gemini/antigravity-cli/plugins/until\"; [ -x \"$r/hooks/agy-plugin-cmd\" ] || r=\"$HOME/.gemini/config/plugins/until\"; exec \"$r/hooks/agy-plugin-cmd\" session-start'"
+          }
+        ]
+      }
+    ]
+  },
+  "until-prompt-reminder": {
+    "PreInvocation": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'r=\"$HOME/.gemini/antigravity-cli/plugins/until\"; [ -x \"$r/hooks/agy-plugin-cmd\" ] || r=\"$HOME/.gemini/config/plugins/until\"; exec \"$r/hooks/agy-plugin-cmd\" prompt-reminder'"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -6,7 +6,7 @@ Until moves the important decisions into the Plan before a coding agent writes a
 
 For individual developers and teams whose agents can produce code faster than they can confidently review it.
 
-This plugin connects Cursor, Claude Code, Codex, Factory Droid, OpenCode, Pi and Amp to Until, guiding the agent through the Until Loop.
+This plugin connects Cursor, Claude Code, Codex, Factory Droid, Antigravity CLI, OpenCode, Pi and Amp to Until, guiding the agent through the Until Loop.
 
 The open-source plugin runs alongside your coding agent. The hosted Until workspace stores Plans and, once you connect source control, links them to pull requests and runs Plan checks.
 
@@ -22,7 +22,7 @@ claude
 
 Restart the session, run `/mcp` to complete authentication, then start a fresh conversation. Until will guide you through creating a workspace. You can connect source control later, when you submit your first Plan for repository-backed work.
 
-Installation instructions for Codex, OpenCode, Cursor and Pi are [below](#install).
+Installation instructions for Codex, Factory Droid, Antigravity CLI, OpenCode, Cursor and Pi are [below](#install).
 
 ## Documentation
 
@@ -76,9 +76,9 @@ They are written in Markdown and kept in git, so you can inspect and change them
 
 ### Requirements
 
-- Cursor, Claude Code, Codex, Factory Droid, GitHub Copilot, OpenCode, Pi or Amp
+- Cursor, Claude Code, Codex, Factory Droid, Antigravity CLI, GitHub Copilot, OpenCode, Pi or Amp
 - macOS or Linux
-- `python3` on `PATH` for the Claude Code, Cursor, Factory Droid and OpenCode enforcement hooks (Amp uses TypeScript enforcement in the plugin; no Python required)
+- `python3` on `PATH` for the Claude Code, Cursor, Factory Droid, Antigravity CLI and OpenCode enforcement hooks (Amp uses TypeScript enforcement in the plugin; no Python required)
 
 Windows is not supported yet. The skills that teach the Until Loop may load, but the hooks that track Plan state and enforce the Until Rule are not reliably launched or validated there. Nothing on Windows will stop an agent from writing code without a Plan.
 
@@ -115,6 +115,34 @@ If `python3` cannot run the hook, enforcement fails open and the tool is
 allowed — including `Task`. Until is a workflow guard, not a security sandbox.
 
 Windows is not supported for Factory Droid enforcement hooks.
+
+### Antigravity CLI
+
+Install Until as a native Antigravity plugin:
+
+```bash
+agy plugin install /absolute/path/to/until-plugins
+```
+
+For a published checkout, point `agy plugin install` at the Until plugin root
+(the directory that contains `plugin.json`, `mcp_config.json`, and `hooks.json`).
+Restart `agy` and start a fresh session. Run `/mcp` (or the TUI MCP auth flow)
+to finish sign-in. After install, Until tools must load and `/hooks` must show
+the Until PreToolUse gate. Skills without MCP tools or hooks is a failed
+install.
+
+The native hook file calls the same session-start, prompt-reminder, commit-gate,
+and state-tracking scripts as Claude Code and Factory Droid. The gate covers
+`run_command` (shell), `write_to_file`, `replace_file_content`, and
+`multi_replace_file_content` (files), plus `invoke_subagent` (spawn) and any
+`create_file` / `edit_file` aliases your `agy` build still emits. Read and
+search tools stay allowed.
+
+If `python3` cannot run the hook, enforcement fails open and the tool is
+allowed. Until is a workflow guard, not a security sandbox. Inspect
+`~/.until/hooks.log` after a supported tool call.
+
+Windows is not supported for Antigravity CLI enforcement hooks.
 
 ### OpenCode
 
@@ -221,7 +249,7 @@ available, and `/mcp` should show the Until server.
 
 This first Pi release supports the Until workflow and MCP tools. Pi does not
 load the deterministic enforcement hooks used by Claude Code, Factory Droid,
-Cursor and OpenCode.
+Antigravity CLI, Cursor and OpenCode.
 
 ### Amp
 
@@ -269,6 +297,12 @@ Claude Code updates through the plugin manager.
 Update Until through Codex's plugin manager, then restart Codex.
 
 Update Factory Droid through its plugin manager, then restart Droid.
+
+Reinstall Until in Antigravity CLI from the plugin root, then restart `agy`:
+
+```bash
+agy plugin install /absolute/path/to/until-plugins
+```
 
 Refresh the global OpenCode plugin and restart OpenCode:
 
@@ -322,6 +356,9 @@ codex plugin marketplace remove until
 ```
 
 On Factory Droid, remove Until through the plugin manager.
+
+On Antigravity CLI, remove Until through `agy plugin uninstall until`, then
+restart `agy`.
 
 On OpenCode, remove `@until-dev/plugins` from the `plugin` array in
 `~/.config/opencode/opencode.json`, then restart OpenCode.

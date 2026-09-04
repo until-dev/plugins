@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "until": {
+      "serverUrl": "https://run.until.dev/mcp"
+    }
+  }
+}
