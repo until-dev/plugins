@@ -1,8 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { createMcpAdapter } from 'pi-mcp-adapter';
+import {
+  createMcpCoordinator,
+  type McpCoordinatorPi,
+} from '../mcp-coordination.ts';
 
 const IMPORTANT_MARKER = '<EXTREMELY_IMPORTANT>';
 const BOOTSTRAP_MARKER = 'until:using-until bootstrap for pi';
@@ -16,18 +19,43 @@ const bootstrapSkillPath = resolve(
   'using-until',
   'SKILL.md',
 );
-const installMcpAdapter = createMcpAdapter({ configPath: mcpConfigPath });
+
+type UntilPiExtensionApi = McpCoordinatorPi & {
+  on(event: string, handler: (event: never) => unknown): void;
+};
 
 let cachedBootstrap: string | null | undefined;
 
-export default function untilPiExtension(pi: ExtensionAPI): void {
-  installMcpAdapter(pi);
+export default function untilPiExtension(pi: UntilPiExtensionApi): void {
+  const coordinator = createMcpCoordinator({
+    pi,
+    configPath: mcpConfigPath,
+    installBundledAdapter: () => {
+      createMcpAdapter({ configPath: mcpConfigPath })(pi);
+    },
+    reportError: (message) => {
+      console.error(message);
+    },
+  });
 
   let injectBootstrap = true;
 
-  pi.on('resources_discover', async () => ({
-    skillPaths: [skillsDir],
-  }));
+  pi.on('resources_discover', async () => {
+    try {
+      coordinator.discover();
+    } catch (error) {
+      console.error(
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+    return {
+      skillPaths: [skillsDir],
+    };
+  });
+
+  pi.on('session_shutdown', async () => {
+    await coordinator.dispose();
+  });
 
   pi.on('session_start', async () => {
     injectBootstrap = true;
@@ -41,8 +69,9 @@ export default function untilPiExtension(pi: ExtensionAPI): void {
     injectBootstrap = false;
   });
 
-  pi.on('context', async (event) => {
-    if (!injectBootstrap || event.messages.some(messageContainsBootstrap)) {
+  pi.on('context', async (event: { messages?: unknown[] }) => {
+    const messages = event.messages ?? [];
+    if (!injectBootstrap || messages.some(messageContainsBootstrap)) {
       return;
     }
 
@@ -56,13 +85,13 @@ export default function untilPiExtension(pi: ExtensionAPI): void {
       content: [{ type: 'text' as const, text: bootstrap }],
       timestamp: Date.now(),
     };
-    const insertAt = firstNonCompactionSummaryIndex(event.messages);
+    const insertAt = firstNonCompactionSummaryIndex(messages);
 
     return {
       messages: [
-        ...event.messages.slice(0, insertAt),
+        ...messages.slice(0, insertAt),
         bootstrapMessage,
-        ...event.messages.slice(insertAt),
+        ...messages.slice(insertAt),
       ],
     };
   });

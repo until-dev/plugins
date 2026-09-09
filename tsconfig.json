@@ -1,12 +1,16 @@
 {
-  "include": ["index.ts", "amp/**/*.ts"],
-  "exclude": ["amp/**/*.test.ts"],
+  "include": ["index.ts", "amp/**/*.ts", ".pi/**/*.ts"],
+  "exclude": ["amp/**/*.test.ts", ".pi/**/*.test.ts"],
   "compilerOptions": {
     "lib": ["ESNext"],
     "target": "ESNext",
     "module": "Preserve",
     "moduleResolution": "bundler",
     "types": ["bun"],
+    "baseUrl": ".",
+    "paths": {
+      "pi-mcp-adapter": ["./shims/pi-mcp-adapter.ts"]
+    },
     "noEmit": true,
     "strict": true,
     "noUncheckedIndexedAccess": true,

@@ -62,6 +62,24 @@ before the workspace was created or selected.
 
 Do not include OAuth tokens or other credentials in a support issue.
 
+### Pi Until fails to load with MCP tool or flag conflicts
+
+**Likely cause:** a standalone `pi-mcp-adapter` older than 2.28.0 is installed
+alongside `pi-until-loop`, or it already owns the global `mcp` / `mcpScript`
+tools and `--mcp-config` flag in a way Until cannot reuse.
+
+**Try:**
+
+1. Confirm Until skills and startup guidance still load. They should remain
+   available even when MCP registration degrades.
+2. Upgrade the standalone adapter to 2.28.0 or newer (`pi update npm:pi-mcp-adapter`),
+   then restart Pi.
+3. If you do not need a standalone adapter, remove it (`pi remove npm:pi-mcp-adapter`)
+   so Until can use its bundled copy, then restart Pi.
+4. Run `/mcp`. An existing server named `until` is left as configured, including
+   one imported from another host. Authenticate with `/mcp-auth until` when that
+   server is the Until plugin URL.
+
 ### Until MCP is not connected
 
 **Symptom:** Until skills load but MCP tools (`submit_plan`, `get_plan`, …) are missing, or `amp mcp doctor` does not list `until`.

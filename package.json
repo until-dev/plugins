@@ -1,6 +1,6 @@
 {
   "name": "pi-until-loop",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "Spend your time on the engineering trade-offs that matter. Let the Until Loop make sure your agents deliver what you want, how you want it.",
   "type": "module",
   "exports": {
@@ -55,10 +55,10 @@
     "skills": [
       "./skills"
     ],
-    "image": "https://unpkg.com/pi-until-loop@0.2.8/assets/pi-catalog.png"
+    "image": "https://unpkg.com/pi-until-loop@0.2.9/assets/pi-catalog.png"
   },
   "dependencies": {
-    "pi-mcp-adapter": "2.31.0"
+    "pi-mcp-adapter": "2.32.1"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"

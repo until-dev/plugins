@@ -195,14 +195,24 @@ For local pre-release testing, install this repository's plugin directory:
 pi install /absolute/path/to/workspace/plugins
 ```
 
-Start Pi and authenticate the bundled MCP adapter:
+Start Pi and authenticate the Until MCP server:
 
 ```text
 /mcp-auth until
 ```
 
+If `pi-mcp-adapter` 2.28.0 or newer is already installed, Until reuses that
+adapter and registers the `until` server on it. A server already named `until`
+is left unchanged. If no adapter is installed, Until uses the copy bundled
+with `pi-until-loop`.
+
 Complete the browser flow, then run `/mcp` to confirm that the Until server is
 available. Start a fresh Pi session so the Until startup guidance is loaded.
+
+If Pi reports that `mcp`, `mcpScript`, or `--mcp-config` already exist, or that
+Until needs `pi-mcp-adapter` 2.28.0 or newer, upgrade or remove the standalone
+adapter and restart Pi. Until skills and startup guidance still load in that
+state.
 
 Pi support includes the Until skills, startup guidance and MCP tools. It does
 not include the deterministic enforcement hooks used by Claude Code, Factory
