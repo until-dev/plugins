@@ -12,6 +12,20 @@ owned surfaces, external contracts, constraints, and verification — not
 pre-written internal code. This is the cheapest place in the whole process to
 catch a wrong idea — before any code exists.
 
+Plans may also need to support a later question: did the intended change reach
+the right environment and produce the intended result there? Keep three kinds
+of proof distinct:
+
+- **Implementation proof** — tests, builds, and diff evidence show the code
+  satisfies the Plan.
+- **Deployment proof** — evidence shows the intended revision reached the
+  target environment, release, or control plane.
+- **Outcome proof** — evidence from that environment shows the intended
+  behavior or user-visible result occurred.
+
+A merged PR, passing tests, or a successful build are implementation evidence.
+They are not, by themselves, deployment proof or outcome proof.
+
 A good plan is defined by **substance**, not length. If a reviewer finishes and
 still cannot answer "why this, why now, who is affected, what changes, what
 does not, and how we will know it worked," the plan is not ready — no matter
@@ -240,11 +254,16 @@ without the sections below.
    must be agreed here. Their absence is deliberate delegation, not an
    incomplete plan.
 9. **Scope fence** — state what this plan does NOT do.
-10. **Done means** — one sentence: the observable outcome when it ships.
-11. **Tests / verification** — name the behaviors that prove it works (not
-    the implementation surface), or a one-line reason none fits. Include
-    dogfood or manual validation when automated coverage cannot see the
-    failure mode. "Test later" is not allowed.
+10. **Done means** — one sentence: the observable system or user outcome this
+    Plan is meant to produce. Do not substitute "the code is merged," "tests
+    pass," or "the change is deployed" for the intended outcome.
+11. **Tests / verification** — name the implementation evidence that proves
+    the required behavior, invariants, and contracts (not the implementation
+    surface), or a one-line reason none fits. Include dogfood or manual checks
+    when automated coverage cannot see the failure mode. When the Plan has a
+    meaningful post-ship outcome, add the compact **After it ships** handoff
+    described below; do not treat tests or merge status as deployment evidence.
+    "Test later" is not allowed.
 
 For each material change, the implementer layer must collectively make five
 things recoverable without guesswork:
@@ -271,6 +290,42 @@ settle. Never pre-write routine internal implementation in the plan.
 Optional and useful, but not a substitute for the above: a todo list for the
 implementer, diagrams, wire formats, doc deliverables. Add them only when a
 reviewer or implementer would lose something material without them.
+
+### After it ships (optional)
+
+Add this compact handoff only when the Plan has a meaningful deployed or
+externally delivered outcome. Keep it short — normally two to five bullets.
+It is evidence guidance for a future validator, not an operational runbook,
+credential list, or deferred scope section.
+
+**Include when the change affects:** deployed user-visible behavior; backend
+runtime behavior; infrastructure or managed configuration; database migrations
+or backfills; external integrations; auth or authorization; logs, metrics,
+traces, or alerts; public packages, plugins, or published documentation; or
+behavior that depends on coordinated rollout.
+
+**Usually omit for:** pure source cleanup; internal renames with no runtime
+effect; tests only; unwired component shells; pre-release preparation with no
+publication; behavior-preserving refactors; or repository documentation with
+no separate publishing step.
+
+When included, record:
+
+- **Target** — the environment, tenant, package, integration, or user surface
+  where the outcome should appear.
+- **Deployment evidence** — how to identify that the target contains this
+  change (release record, deployed revision, applied config, published
+  version, etc.).
+- **Outcome evidence** — what observable result would demonstrate the change
+  works as intended.
+- **Conditions** — fixture, account, triggering action, traffic, timing, or
+  propagation window needed for a fair check.
+- **Safety** — human approval, access boundary, or action that must not be
+  performed automatically.
+
+Do not restate the full verification section here. Do not claim the outcome
+has already been validated. If a prerequisite cannot be determined safely,
+record the missing fact rather than inventing certainty.
 
 ## Pre-submit check — verify before you hand it over
 
@@ -318,6 +373,17 @@ The check is about evidence, not scoring:
   Verification, keep its full definition only in the canonical contract
   location. Retain only rationale, location, observable outcome, or proof in
   the other sections. Repetition is not extra precision.
+- **Run the validation-readiness check silently.** When the Plan has a
+  meaningful post-ship outcome, ask yourself: where should the outcome exist;
+  how would someone prove the deployed target contains this revision; is the
+  proposed outcome evidence observing behavior rather than merely inspecting
+  code; does the check need a fixture, account, event, or representative
+  traffic; is there a delay or observation window; could absence of evidence
+  be mistaken for success; does any step require credentials, mutation,
+  privileged access, or human judgment; and could a future validator reach an
+  honest validated, failed, or inconclusive conclusion from what the Plan
+  records. Fold discoverable facts into the Plan; record missing prerequisites
+  instead of guessing.
 
 ## Submit
 
@@ -375,3 +441,6 @@ the Build turn. Cursor Cloud Agents skip this local path entirely via
 | No one is named as affected | Add who cares, or explicitly mark internal-only and keep scope tight |
 | Reviewer would have to re-ask brainstorming questions | Move those answers into Resolved questions |
 | Plan is long but still vague on impact | Cut padding; fix substance — length is not quality |
+| Merge, tests, or deployment treated as the outcome | Rewrite "done means" and separate implementation, deployment, and outcome proof |
+| Deployable outcome with no post-ship handoff | Add the compact After it ships block, or explain why the outcome is not post-ship |
+| After it ships restates verification or smuggles deferred scope | Keep the handoff to target, deployment evidence, outcome evidence, conditions, and safety only |
