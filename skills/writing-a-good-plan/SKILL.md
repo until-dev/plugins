@@ -322,6 +322,12 @@ When included, record:
   propagation window needed for a fair check.
 - **Safety** — human approval, access boundary, or action that must not be
   performed automatically.
+- **Notify when live** *(optional)* — ask who, if anyone, should be told once
+  deployment evidence confirms the intended revision is live in the named
+  target. When people are nominated, record their exact Until human display
+  names in this form: `**Notify when live** — Name One; Name Two`. Omit the
+  field when nobody is nominated. This is deployment-only: it does not claim
+  that outcome evidence has been observed.
 
 Do not restate the full verification section here. Do not claim the outcome
 has already been validated. If a prerequisite cannot be determined safely,
@@ -384,6 +390,11 @@ The check is about evidence, not scoring:
   honest validated, failed, or inconclusive conclusion from what the Plan
   records. Fold discoverable facts into the Plan; record missing prerequisites
   instead of guessing.
+- **Keep deployment notification intent explicit.** When a post-ship
+  stakeholder should hear that a named target is live, include `Notify when
+  live` with their exact Until display name. Do not infer recipients, make the
+  Plan author a default recipient, or describe deployment confirmation as
+  outcome verification.
 
 ## Submit
 
