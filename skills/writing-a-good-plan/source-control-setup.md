@@ -1,11 +1,14 @@
 # Source Control setup recovery
 
-Read this only when `submit_plan` returns
-`source_control_setup_required` without an `UNTIL-<digits>` plan ID. That
-response did not create a plan.
+Read this when `submit_plan` returns a source-control block **without** an
+`UNTIL-<digits>` plan ID. That response did not create a plan.
 
-1. Explain that Source Control setup is required and present the live setup
-   link from the response. Do not invent a URL.
+## `source_control_setup_required`
+
+Setup can resolve the block. Present the live setup link from the response; do
+not invent a URL.
+
+1. Explain that Source Control setup is required and present the setup link.
 2. Relay this instruction:
 
    > Until needs access to this repository to compare the eventual Pull request
@@ -14,17 +17,39 @@ response did not create a plan.
 
 3. Say clearly that **no plan has been submitted**.
 4. Stop before review or implementation because there is nothing to review.
-5. Wait for the partner to confirm in this conversation that setup is complete.
-   `continue` is only a suggested reply; an equally clear confirmation also
-   authorizes the retry. Do not infer completion from silence or claim that
-   another surface will resume automatically.
-6. Retry `submit_plan` with the same title, repository, and reviewer.
-7. Run the returned upload command before moving to review or implementation,
+5. Wait for the partner to confirm setup is complete, then retry `submit_plan`
+   with the same title, repository, and reviewer.
+6. Run the returned upload command before moving to review or implementation,
    then confirm the saved plan with `get_plan`.
 
-A setup-required response without a Plan ID did not begin submission. A real
-`UNTIL-<digits>` ID starts the two-step submission, but implementation still
-waits for the upload and `get_plan` confirmation.
+For GitHub shared installations, setup may mean **ATTACH** OAuth plus requesting
+a repository-scoped grant from the Integrations page rather than installing the
+App again.
+
+## `source_control_approval_pending`
+
+The workspace already requested access; an existing grant holder must approve.
+There is **no** setup URL — do not send the partner to Integrations as if they
+can fix it alone.
+
+1. Explain that approval from a workspace admin who already holds access on that
+   GitHub App installation is required.
+2. Say clearly that **no plan has been submitted**.
+3. Stop before review or implementation. Wait for approval, then retry
+   `submit_plan`.
+
+## `source_control_unavailable`
+
+The caller's GitHub user cannot reach this repository on a shared installation
+(ATTACH evidence omits it). There is **no** setup URL.
+
+1. Explain that Until cannot offer a setup action that would grant access — the
+   repository is outside what their GitHub account can see on that installation.
+2. Say clearly that **no plan has been submitted**.
+3. Stop before review or implementation unless the partner can obtain GitHub
+   access or use a different workspace/repository.
+
+## Until Loop waiver
 
 If the partner explicitly says “Don’t use the Until Loop for this.” (or
 another closed-set waiver: “Do not plan”/“DO NOT PLAN” paired with
